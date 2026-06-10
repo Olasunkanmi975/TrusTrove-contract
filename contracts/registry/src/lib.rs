@@ -68,6 +68,13 @@ impl RegistryContract {
         true
     }
 
+    pub fn get_profile(env: Env, address: Address) -> Profile {
+        env.storage()
+            .persistent()
+            .get(&DataKey::Profile(address.clone()))
+            .unwrap_or_else(|| panic_with_error!(&env, RegistryError::NotFound))
+    }
+
     pub fn is_verified(env: Env, address: Address) -> bool {
         env.storage()
             .persistent()
