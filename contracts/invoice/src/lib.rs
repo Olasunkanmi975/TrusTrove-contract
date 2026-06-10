@@ -6,6 +6,7 @@ use soroban_sdk::{
 
 mod errors;
 mod events;
+mod test;
 mod types;
 
 pub use errors::*;
