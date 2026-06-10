@@ -5,6 +5,7 @@ use soroban_sdk::{
 };
 
 mod errors;
+mod test;
 mod types;
 
 pub use errors::*;
