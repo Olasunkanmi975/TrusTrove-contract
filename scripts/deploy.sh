@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-STELLAR="/c/Program Files (x86)/Stellar CLI/stellar.exe"
+STELLAR="/mnt/c/Program Files (x86)/Stellar CLI/stellar.exe"
 
 source .env.example
 
@@ -11,10 +11,11 @@ echo "=== Building all contracts ==="
 echo ""
 echo "=== Deploying registry_contract ==="
 REGISTRY_ID=$("$STELLAR" contract deploy \
-  --wasm target/wasm32-unknown-unknown/release/trusttrove_registry.wasm \
+  --wasm target/wasm32v1-none/release/trusttrove_registry.wasm \
   --source $DEPLOYER_ACCOUNT \
   --network testnet)
 echo "Registry: $REGISTRY_ID"
+sleep 3
 
 "$STELLAR" contract invoke \
   --id $REGISTRY_ID \
@@ -22,14 +23,16 @@ echo "Registry: $REGISTRY_ID"
   --network testnet \
   -- initialize \
   --admin $("$STELLAR" keys address $DEPLOYER_ACCOUNT)
+sleep 3
 
 echo ""
 echo "=== Deploying invoice_contract ==="
 INVOICE_ID=$("$STELLAR" contract deploy \
-  --wasm target/wasm32-unknown-unknown/release/trusttrove_invoice.wasm \
+  --wasm target/wasm32v1-none/release/trusttrove_invoice.wasm \
   --source $DEPLOYER_ACCOUNT \
   --network testnet)
 echo "Invoice: $INVOICE_ID"
+sleep 3
 
 "$STELLAR" contract invoke \
   --id $INVOICE_ID \
@@ -38,22 +41,25 @@ echo "Invoice: $INVOICE_ID"
   -- initialize \
   --admin $("$STELLAR" keys address $DEPLOYER_ACCOUNT) \
   --registry_contract $REGISTRY_ID
+sleep 3
 
 echo ""
 echo "=== Deploying escrow_contract ==="
 ESCROW_ID=$("$STELLAR" contract deploy \
-  --wasm target/wasm32-unknown-unknown/release/trusttrove_escrow.wasm \
+  --wasm target/wasm32v1-none/release/trusttrove_escrow.wasm \
   --source $DEPLOYER_ACCOUNT \
   --network testnet)
 echo "Escrow: $ESCROW_ID"
+sleep 3
 
 echo ""
 echo "=== Deploying pool_contract ==="
 POOL_ID=$("$STELLAR" contract deploy \
-  --wasm target/wasm32-unknown-unknown/release/trusttrove_pool.wasm \
+  --wasm target/wasm32v1-none/release/trusttrove_pool.wasm \
   --source $DEPLOYER_ACCOUNT \
   --network testnet)
 echo "Pool: $POOL_ID"
+sleep 3
 
 echo ""
 echo "=== Initializing escrow with pool and invoice addresses ==="
@@ -66,6 +72,7 @@ echo "=== Initializing escrow with pool and invoice addresses ==="
   --pool_contract $POOL_ID \
   --invoice_contract $INVOICE_ID \
   --usdc_asset $USDC_ISSUER
+sleep 3
 
 echo ""
 echo "=== Initializing pool ==="
@@ -78,6 +85,7 @@ echo "=== Initializing pool ==="
   --invoice_contract $INVOICE_ID \
   --escrow_contract $ESCROW_ID \
   --usdc_asset $USDC_ISSUER
+sleep 3
 
 echo ""
 echo "=== Wiring pool_contract into invoice_contract ==="
@@ -87,6 +95,7 @@ echo "=== Wiring pool_contract into invoice_contract ==="
   --network testnet \
   -- set_pool_contract \
   --pool_contract $POOL_ID
+sleep 3
 
 echo ""
 echo "==========================================="
