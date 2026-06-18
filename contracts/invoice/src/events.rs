@@ -6,6 +6,7 @@ pub fn invoice_created(
     issuer: &Address,
     buyer: &Address,
     face_value: u128,
+    funding_asset: &Address,
 ) {
     env.events().publish(
         (
@@ -13,6 +14,7 @@ pub fn invoice_created(
             invoice_id.clone(),
             issuer.clone(),
             buyer.clone(),
+            funding_asset.clone(),
         ),
         face_value,
     );

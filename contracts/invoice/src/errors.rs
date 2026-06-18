@@ -15,4 +15,5 @@ pub enum InvoiceError {
     AlreadyConfirmed = 10,
     DueDateNotPassed = 11,
     InsufficientRepayment = 12,
+    UnsupportedAsset = 13,
 }

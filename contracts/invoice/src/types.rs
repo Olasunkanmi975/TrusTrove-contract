@@ -29,6 +29,8 @@ pub struct Invoice {
     pub issuer_confirmed: bool,
     pub buyer_confirmed: bool,
     pub repaid_at: Option<u64>,
+    pub funding_asset: Address,
+    pub funding_pool: Option<Address>,
 }
 
 #[contracttype]

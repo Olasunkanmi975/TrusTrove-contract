@@ -205,8 +205,19 @@ impl PoolContract {
         let invoice_status: u32 =
             env.invoke_contract(&invoice_contract, &Symbol::new(&env, "get_status"), args);
         if invoice_status != 1 {
-            // 1 = Listed
             panic_with_error!(&env, PoolError::InvoiceNotListed);
+        }
+
+        let mut args = Vec::new(&env);
+        args.push_back(invoice_id.clone().into_val(&env));
+        let invoice_asset: Address = env.invoke_contract(
+            &invoice_contract,
+            &Symbol::new(&env, "get_funding_asset"),
+            args,
+        );
+        let usdc_id: Address = env.storage().instance().get(&DataKey::UsdcAsset).unwrap();
+        if invoice_asset != usdc_id {
+            panic_with_error!(&env, PoolError::AssetMismatch);
         }
 
         let mut args = Vec::new(&env);
@@ -248,8 +259,11 @@ impl PoolContract {
         args.push_back(funded_amount.into_val(&env));
         let _: bool = env.invoke_contract(&escrow_contract, &Symbol::new(&env, "lock"), args);
 
+        let pool_address = env.current_contract_address();
         let mut args = Vec::new(&env);
         args.push_back(invoice_id.clone().into_val(&env));
+        args.push_back(pool_address.into_val(&env));
+        args.push_back(usdc_id.into_val(&env));
         args.push_back(funded_amount.into_val(&env));
         let _: bool =
             env.invoke_contract(&invoice_contract, &Symbol::new(&env, "mark_funded"), args);

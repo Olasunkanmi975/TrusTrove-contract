@@ -69,6 +69,7 @@ struct TestEnv {
     pool: PoolContractClient<'static>,
     invoice: RealInvoiceClient<'static>,
     usdc_id: Address,
+    xlm_id: Address,
     issuer: Address,
     buyer: Address,
     lp: Address,
@@ -89,6 +90,7 @@ fn setup() -> TestEnv {
     registry.register(&buyer);
 
     let usdc_id = env.register_contract(None, MockToken);
+    let xlm_id = env.register_contract(None, MockToken);
 
     let lp_bal_key = TKey(lp.clone());
     env.as_contract(&usdc_id, || {
@@ -96,8 +98,18 @@ fn setup() -> TestEnv {
             .persistent()
             .set(&lp_bal_key, &100_000_000_000_000i128);
     });
+    env.as_contract(&xlm_id, || {
+        env.storage()
+            .persistent()
+            .set(&lp_bal_key, &100_000_000_000_000i128);
+    });
     let buyer_bal_key = TKey(buyer.clone());
     env.as_contract(&usdc_id, || {
+        env.storage()
+            .persistent()
+            .set(&buyer_bal_key, &100_000_000_000_000i128);
+    });
+    env.as_contract(&xlm_id, || {
         env.storage()
             .persistent()
             .set(&buyer_bal_key, &100_000_000_000_000i128);
@@ -123,17 +135,22 @@ fn setup() -> TestEnv {
         pool,
         invoice,
         usdc_id,
+        xlm_id,
         issuer,
         buyer,
         lp,
     }
 }
 
-fn create_and_list(te: &TestEnv) -> BytesN<32> {
+fn create_and_list(te: &TestEnv, funding_asset: &Address) -> BytesN<32> {
     let due_date = te.env.ledger().timestamp() + 86400;
-    let invoice_id = te
-        .invoice
-        .create(&te.issuer, &te.buyer, &10_000_000_000, &due_date);
+    let invoice_id = te.invoice.create(
+        &te.issuer,
+        &te.buyer,
+        &10_000_000_000,
+        &due_date,
+        funding_asset,
+    );
     te.invoice.list_for_financing(&invoice_id, &200);
     invoice_id
 }
@@ -163,7 +180,6 @@ fn test_second_deposit_scales_by_share_price() {
     let te = setup();
     te.pool.deposit(&te.lp, &10_000_000_000);
 
-    // Second deposit at same price
     let shares = te.pool.deposit(&te.lp, &5_000_000_000);
     assert_eq!(shares, 5_000_000_000);
 
@@ -204,7 +220,7 @@ fn test_withdraw_more_than_owned_panics() {
 fn test_fund_invoice_reduces_available_liquidity() {
     let te = setup();
     te.pool.deposit(&te.lp, &100_000_000_000);
-    let invoice_id = create_and_list(&te);
+    let invoice_id = create_and_list(&te, &te.usdc_id);
 
     let before = te.pool.get_stats();
     let _ = te.pool.fund_invoice(&invoice_id);
@@ -219,8 +235,17 @@ fn test_fund_invoice_reduces_available_liquidity() {
 #[should_panic(expected = "Error(Contract, #5)")]
 fn test_fund_invoice_fails_when_insufficient_liquidity() {
     let te = setup();
-    // Don't deposit anything — pool is empty
-    let invoice_id = create_and_list(&te);
+    let invoice_id = create_and_list(&te, &te.usdc_id);
+    te.pool.fund_invoice(&invoice_id);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #11)")]
+fn test_fund_invoice_fails_asset_mismatch() {
+    let te = setup();
+    te.pool.deposit(&te.lp, &100_000_000_000);
+    // Create invoice with XLM asset, but pool handles USDC
+    let invoice_id = create_and_list(&te, &te.xlm_id);
     te.pool.fund_invoice(&invoice_id);
 }
 
@@ -253,7 +278,7 @@ fn test_get_stats_after_deposit() {
 fn test_get_stats_after_funding() {
     let te = setup();
     te.pool.deposit(&te.lp, &100_000_000_000);
-    let invoice_id = create_and_list(&te);
+    let invoice_id = create_and_list(&te, &te.usdc_id);
     let _ = te.pool.fund_invoice(&invoice_id);
 
     let stats = te.pool.get_stats();
@@ -304,7 +329,7 @@ fn test_utilization_rate_zero_when_no_funding() {
 fn test_utilization_rate_after_funding() {
     let te = setup();
     te.pool.deposit(&te.lp, &100_000_000_000);
-    let invoice_id = create_and_list(&te);
+    let invoice_id = create_and_list(&te, &te.usdc_id);
     let _ = te.pool.fund_invoice(&invoice_id);
     let rate = te.pool.get_utilization_rate();
     assert!(rate > 0);

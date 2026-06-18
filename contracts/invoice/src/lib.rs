@@ -48,6 +48,7 @@ impl InvoiceContract {
         buyer: Address,
         face_value: u128,
         due_date: u64,
+        funding_asset: Address,
     ) -> BytesN<32> {
         issuer.require_auth();
 
@@ -105,6 +106,12 @@ impl InvoiceContract {
         for b in counter.to_be_bytes() {
             hash_input.push_back(b);
         }
+        {
+            let asset_xdr = funding_asset.clone().to_xdr(&env);
+            for i in 0..32 {
+                hash_input.push_back(asset_xdr.get(i).unwrap());
+            }
+        }
         let invoice_id: BytesN<32> = env.crypto().sha256(&hash_input).into();
 
         let invoice = Invoice {
@@ -122,6 +129,8 @@ impl InvoiceContract {
             issuer_confirmed: false,
             buyer_confirmed: false,
             repaid_at: None,
+            funding_asset: funding_asset.clone(),
+            funding_pool: None,
         };
 
         let inv_key = DataKey::Invoice(invoice_id.clone());
@@ -144,6 +153,7 @@ impl InvoiceContract {
             &invoice.issuer,
             &invoice.buyer,
             face_value,
+            &funding_asset,
         );
         invoice_id
     }
@@ -179,13 +189,14 @@ impl InvoiceContract {
         true
     }
 
-    pub fn mark_funded(env: Env, invoice_id: BytesN<32>, funded_amount: u128) -> bool {
-        let pool: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::PoolContract)
-            .unwrap();
-        pool.require_auth();
+    pub fn mark_funded(
+        env: Env,
+        invoice_id: BytesN<32>,
+        pool_address: Address,
+        asset_address: Address,
+        funded_amount: u128,
+    ) -> bool {
+        pool_address.require_auth();
 
         let inv_key = DataKey::Invoice(invoice_id.clone());
         let mut invoice: Invoice = env
@@ -196,9 +207,14 @@ impl InvoiceContract {
         if invoice.status != InvoiceStatus::Listed {
             panic_with_error!(&env, InvoiceError::InvalidStatusTransition);
         }
+        if asset_address != invoice.funding_asset {
+            panic_with_error!(&env, InvoiceError::UnsupportedAsset);
+        }
+
         invoice.status = InvoiceStatus::Funded;
         invoice.funded_amount = funded_amount;
         invoice.funded_at = Some(env.ledger().timestamp());
+        invoice.funding_pool = Some(pool_address);
         env.storage().persistent().set(&inv_key, &invoice);
         env.storage()
             .persistent()
@@ -302,21 +318,20 @@ impl InvoiceContract {
             panic_with_error!(&env, InvoiceError::InvalidStatusTransition);
         }
 
-        let pool: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::PoolContract)
-            .unwrap();
+        let pool: Address = invoice
+            .funding_pool
+            .clone()
+            .unwrap_or_else(|| panic_with_error!(&env, InvoiceError::NotFound));
+        let face_value = invoice.face_value;
+        let buyer = invoice.buyer.clone();
+        let funding_asset = invoice.funding_asset.clone();
 
-        let usdc_asset: Address =
-            env.invoke_contract(&pool, &Symbol::new(&env, "get_usdc_asset"), Vec::new(&env));
-
-        let usdc = token::Client::new(&env, &usdc_asset);
-        usdc.transfer(&invoice.buyer, &pool, &(invoice.face_value as i128));
+        let token = token::Client::new(&env, &funding_asset);
+        token.transfer(&buyer, &pool, &(face_value as i128));
 
         let mut args = Vec::new(&env);
         args.push_back(invoice_id.clone().into_val(&env));
-        args.push_back(invoice.face_value.into_val(&env));
+        args.push_back(face_value.into_val(&env));
         let _: bool = env.invoke_contract(&pool, &Symbol::new(&env, "receive_repayment"), args);
 
         let mut updated = invoice;
@@ -371,11 +386,9 @@ impl InvoiceContract {
 
         self::move_status_index(&env, &invoice_id, prev_status, InvoiceStatus::Defaulted);
 
-        let pool: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::PoolContract)
-            .unwrap();
+        let pool: Address = invoice
+            .funding_pool
+            .unwrap_or_else(|| panic_with_error!(&env, InvoiceError::NotFound));
         let mut args = Vec::new(&env);
         args.push_back(invoice_id.clone().into_val(&env));
         let _: bool = env.invoke_contract(&pool, &Symbol::new(&env, "handle_default"), args);
@@ -408,6 +421,15 @@ impl InvoiceContract {
             .get(&DataKey::Invoice(invoice_id))
             .unwrap_or_else(|| panic_with_error!(&env, InvoiceError::NotFound));
         invoice.discount_bps
+    }
+
+    pub fn get_funding_asset(env: Env, invoice_id: BytesN<32>) -> Address {
+        let invoice: Invoice = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Invoice(invoice_id))
+            .unwrap_or_else(|| panic_with_error!(&env, InvoiceError::NotFound));
+        invoice.funding_asset
     }
 
     pub fn get(env: Env, invoice_id: BytesN<32>) -> Invoice {
