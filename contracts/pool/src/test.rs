@@ -406,8 +406,10 @@ fn test_two_lps_receive_proportional_yield() {
 
     assert_eq!(pos1.shares, 10_000_000_000);
     assert_eq!(pos2.shares, 30_000_000_000);
-    assert_eq!(pos1.usdc_value, 10_200_000_000);
-    assert_eq!(pos2.usdc_value, 30_600_000_000);
+    // With proportional yield distribution: LP1 gets 25% (10B/40B) of yield
+    assert_eq!(pos1.usdc_value, 10_050_000_000);
+    // LP2 gets 75% (30B/40B) of yield
+    assert_eq!(pos2.usdc_value, 30_150_000_000);
 }
 
 #[test]
