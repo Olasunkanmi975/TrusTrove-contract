@@ -224,3 +224,38 @@ fn test_batch_register_issuers_mixed() {
     assert!(client.is_verified(&issuer2));
     assert!(client.is_verified(&issuer3));
 }
+
+#[test]
+fn test_verify_profile_updates_status() {
+    let (env, client) = setup();
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+    let issuer = Address::generate(&env);
+    client.register_issuer(&issuer, &map![&env]);
+    
+    assert!(client.is_verified(&issuer));
+    
+    // Revoke
+    client.revoke(&issuer);
+    assert!(!client.is_verified(&issuer));
+    
+    // Re-verify
+    let result = client.verify_profile(&issuer, &true);
+    assert!(result);
+    assert!(client.is_verified(&issuer));
+
+    // Un-verify again
+    let result2 = client.verify_profile(&issuer, &false);
+    assert!(result2);
+    assert!(!client.is_verified(&issuer));
+}
+
+#[test]
+#[should_panic]
+fn test_verify_profile_unknown_panics() {
+    let (env, client) = setup();
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+    let unknown = Address::generate(&env);
+    client.verify_profile(&unknown, &true);
+}
