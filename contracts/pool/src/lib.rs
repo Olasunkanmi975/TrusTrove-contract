@@ -68,6 +68,9 @@ impl PoolContract {
         env.storage()
             .instance()
             .set(&DataKey::ActiveInvoiceCount, &0u32);
+        env.storage()
+            .instance()
+            .set(&DataKey::MaxUtilizationBps, &8500u32);
         Self::extend_instance_ttl(&env);
     }
 
@@ -337,6 +340,18 @@ impl PoolContract {
             panic_with_error!(&env, PoolError::InsufficientLiquidity);
         }
 
+        let max_utilization_bps: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::MaxUtilizationBps)
+            .unwrap();
+        let new_total_funded = total_funded + funded_amount;
+        let utilization_after =
+            (new_total_funded * 10000).checked_div(total_deposits).unwrap_or(0) as u32;
+        if utilization_after > max_utilization_bps {
+            panic_with_error!(&env, PoolError::UtilizationCapExceeded);
+        }
+
         let escrow_contract: Address = env
             .storage()
             .instance()
@@ -565,6 +580,11 @@ impl PoolContract {
             .instance()
             .get(&DataKey::TotalShares)
             .unwrap_or(0);
+        let max_utilization_bps: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::MaxUtilizationBps)
+            .unwrap_or(8500);
 
         PoolStats {
             total_deposits,
@@ -574,6 +594,7 @@ impl PoolContract {
             total_yield_distributed: total_yield,
             active_invoice_count: active_count,
             total_shares,
+            max_utilization_bps,
         }
     }
 
@@ -659,6 +680,18 @@ impl PoolContract {
             return 0;
         }
         (total_funded * 10000 / total_deposits) as u32
+    }
+
+    pub fn set_max_utilization(env: Env, admin: Address, new_cap_bps: u32) -> bool {
+        admin.require_auth();
+        if new_cap_bps > 10000 {
+            panic_with_error!(&env, PoolError::InvalidAmount);
+        }
+        env.storage()
+            .instance()
+            .set(&DataKey::MaxUtilizationBps, &new_cap_bps);
+        Self::extend_instance_ttl(&env);
+        true
     }
 
     fn extend_instance_ttl(env: &Env) {
