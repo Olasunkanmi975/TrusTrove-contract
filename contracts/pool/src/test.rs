@@ -169,10 +169,7 @@ fn create_lp_with_balance(te: &TestEnv, balance: i128) -> Address {
     let lp = Address::generate(&te.env);
     let lp_bal_key = TKey(lp.clone());
     te.env.as_contract(&te.usdc_id, || {
-        te.env
-            .storage()
-            .persistent()
-            .set(&lp_bal_key, &balance);
+        te.env.storage().persistent().set(&lp_bal_key, &balance);
     });
     lp
 }
