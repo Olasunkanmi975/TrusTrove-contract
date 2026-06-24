@@ -1,10 +1,11 @@
 #![cfg(test)]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, testutils::Address as _, Address, BytesN, Env,
+    contract, contractimpl, contracttype, testutils::Address as _, testutils::Events as _, Address,
+    BytesN, Env, Symbol, TryFromVal, Vec,
 };
 
-use crate::{EscrowContract, EscrowContractClient};
+use crate::{EscrowAction, EscrowContract, EscrowContractClient, EscrowEvent};
 
 #[contract]
 pub struct MockToken;
@@ -81,6 +82,53 @@ fn generate_invoice_id(env: &Env) -> BytesN<32> {
     BytesN::from_array(env, &arr)
 }
 
+fn assert_last_event_two<T1>(
+    env: &Env,
+    expected_name: &str,
+    expected_topic1: T1,
+    expected_data: u128,
+) where
+    T1: TryFromVal<Env, soroban_sdk::Val> + core::fmt::Debug + PartialEq,
+    <T1 as TryFromVal<Env, soroban_sdk::Val>>::Error: core::fmt::Debug,
+{
+    let events = env.events().all();
+    let (_, topics, data) = events.last().expect("expected at least one event");
+
+    let topic0: Symbol = Symbol::try_from_val(env, &topics.get(0).unwrap()).unwrap();
+    let topic1: T1 = T1::try_from_val(env, &topics.get(1).unwrap()).unwrap();
+    let actual_data: u128 = u128::try_from_val(env, &data).unwrap();
+
+    assert_eq!(topic0, Symbol::new(env, expected_name));
+    assert_eq!(topic1, expected_topic1);
+    assert_eq!(actual_data, expected_data);
+}
+
+fn assert_last_event_three<T1, T2>(
+    env: &Env,
+    expected_name: &str,
+    expected_topic1: T1,
+    expected_topic2: T2,
+    expected_data: u128,
+) where
+    T1: TryFromVal<Env, soroban_sdk::Val> + core::fmt::Debug + PartialEq,
+    T2: TryFromVal<Env, soroban_sdk::Val> + core::fmt::Debug + PartialEq,
+    <T1 as TryFromVal<Env, soroban_sdk::Val>>::Error: core::fmt::Debug,
+    <T2 as TryFromVal<Env, soroban_sdk::Val>>::Error: core::fmt::Debug,
+{
+    let events = env.events().all();
+    let (_, topics, data) = events.last().expect("expected at least one event");
+
+    let topic0: Symbol = Symbol::try_from_val(env, &topics.get(0).unwrap()).unwrap();
+    let topic1: T1 = T1::try_from_val(env, &topics.get(1).unwrap()).unwrap();
+    let topic2: T2 = T2::try_from_val(env, &topics.get(2).unwrap()).unwrap();
+    let actual_data: u128 = u128::try_from_val(env, &data).unwrap();
+
+    assert_eq!(topic0, Symbol::new(env, expected_name));
+    assert_eq!(topic1, expected_topic1);
+    assert_eq!(topic2, expected_topic2);
+    assert_eq!(actual_data, expected_data);
+}
+
 #[test]
 fn test_initialize() {
     let env = Env::default();
@@ -107,6 +155,7 @@ fn test_lock_stores_record() {
 
     let locked = client.get_locked(&invoice_id);
     assert_eq!(locked, amount);
+    assert_last_event_two(&env, "funds_locked", invoice_id.clone(), amount);
 }
 
 #[test]
@@ -139,11 +188,18 @@ fn test_release_to_issuer_transfers_correct_amount() {
 
     let locked = client.get_locked(&invoice_id);
     assert_eq!(locked, 0);
+    assert_last_event_three(
+        &env,
+        "released_to_issuer",
+        invoice_id.clone(),
+        issuer,
+        amount,
+    );
 }
 
 #[test]
 fn test_release_to_pool_transfers_correct_amount() {
-    let (env, client, _admin, _pool, _usdc) = setup();
+    let (env, client, _admin, pool, _usdc) = setup();
     let invoice_id = generate_invoice_id(&env);
     let amount: u128 = 1_000_000_000;
 
@@ -154,6 +210,13 @@ fn test_release_to_pool_transfers_correct_amount() {
 
     let locked = client.get_locked(&invoice_id);
     assert_eq!(locked, 0);
+    assert_last_event_three(
+        &env,
+        "released_to_pool",
+        invoice_id.clone(),
+        pool,
+        repayment,
+    );
 }
 
 #[test]
@@ -170,7 +233,7 @@ fn test_release_to_pool_fails_on_mismatched_repayment_amount() {
 
 #[test]
 fn test_handle_default_returns_funds_to_pool() {
-    let (env, client, _admin, _pool, _usdc) = setup();
+    let (env, client, _admin, pool, _usdc) = setup();
     let invoice_id = generate_invoice_id(&env);
     let amount: u128 = 1_000_000_000;
 
@@ -180,6 +243,7 @@ fn test_handle_default_returns_funds_to_pool() {
 
     let locked = client.get_locked(&invoice_id);
     assert_eq!(locked, 0);
+    assert_last_event_three(&env, "default_resolved", invoice_id.clone(), pool, amount);
 }
 
 #[test]
@@ -207,6 +271,40 @@ fn test_get_locked_returns_amount_when_locked() {
 
     client.lock(&invoice_id, &amount);
     assert_eq!(client.get_locked(&invoice_id), amount);
+}
+
+#[test]
+fn test_get_history_returns_action_log() {
+    let (env, client, _admin, _pool, _usdc) = setup();
+    let invoice_id = generate_invoice_id(&env);
+    let amount: u128 = 1_000_000_000;
+    let issuer = Address::generate(&env);
+
+    client.lock(&invoice_id, &amount);
+    client.release_to_issuer(&invoice_id, &issuer);
+
+    let history: Vec<EscrowEvent> = client.get_history(&invoice_id);
+    assert_eq!(history.len(), 2);
+    let lock_event = history.get(0).unwrap();
+    let release_event = history.get(1).unwrap();
+
+    assert_eq!(lock_event.invoice_id, invoice_id);
+    assert_eq!(lock_event.action, EscrowAction::Locked);
+    assert_eq!(lock_event.amount, amount);
+
+    assert_eq!(release_event.invoice_id, invoice_id);
+    assert_eq!(release_event.action, EscrowAction::ReleasedToIssuer);
+    assert_eq!(release_event.amount, amount);
+    assert!(release_event.timestamp >= lock_event.timestamp);
+
+    assert_eq!(client.get_locked(&invoice_id), 0);
+    assert_last_event_three(
+        &env,
+        "released_to_issuer",
+        invoice_id.clone(),
+        issuer,
+        amount,
+    );
 }
 
 #[test]
