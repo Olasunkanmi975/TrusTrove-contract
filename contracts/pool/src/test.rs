@@ -379,10 +379,7 @@ fn test_receive_repayment() {
     assert!(result);
 
     let after = te.pool.get_stats();
-    assert_eq!(
-        after.total_deposits,
-        before.total_deposits + yield_amount
-    );
+    assert_eq!(after.total_deposits, before.total_deposits + yield_amount);
     assert_eq!(after.total_yield_distributed, yield_amount);
     assert_eq!(after.total_funded, 0);
     assert_eq!(after.active_invoice_count, 0);
@@ -417,10 +414,7 @@ fn test_handle_default() {
     assert!(result);
 
     let after = te.pool.get_stats();
-    assert_eq!(
-        after.total_deposits,
-        before.total_deposits - funded_amount
-    );
+    assert_eq!(after.total_deposits, before.total_deposits - funded_amount);
     assert_eq!(after.total_funded, 0);
     assert_eq!(after.active_invoice_count, 0);
 }
