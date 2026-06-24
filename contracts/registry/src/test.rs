@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::{RegistryContract, RegistryContractClient};
-use soroban_sdk::{map, vec, testutils::Address as _, Address, Env, String, Vec};
+use soroban_sdk::{map, testutils::Address as _, vec, Address, Env, String, Vec};
 
 fn setup() -> (Env, RegistryContractClient<'static>) {
     let env = Env::default();
@@ -135,9 +135,27 @@ fn test_batch_register_issuers_all_new() {
     let issuer2 = Address::generate(&env);
     let issuer3 = Address::generate(&env);
 
-    let metadata1 = map![&env, (String::from_str(&env, "name"), String::from_str(&env, "Issuer 1"))];
-    let metadata2 = map![&env, (String::from_str(&env, "name"), String::from_str(&env, "Issuer 2"))];
-    let metadata3 = map![&env, (String::from_str(&env, "name"), String::from_str(&env, "Issuer 3"))];
+    let metadata1 = map![
+        &env,
+        (
+            String::from_str(&env, "name"),
+            String::from_str(&env, "Issuer 1")
+        )
+    ];
+    let metadata2 = map![
+        &env,
+        (
+            String::from_str(&env, "name"),
+            String::from_str(&env, "Issuer 2")
+        )
+    ];
+    let metadata3 = map![
+        &env,
+        (
+            String::from_str(&env, "name"),
+            String::from_str(&env, "Issuer 3")
+        )
+    ];
 
     let entries = vec![
         &env,
@@ -206,4 +224,3 @@ fn test_batch_register_issuers_mixed() {
     assert!(client.is_verified(&issuer2));
     assert!(client.is_verified(&issuer3));
 }
-
