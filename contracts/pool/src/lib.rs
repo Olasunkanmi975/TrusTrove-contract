@@ -194,8 +194,14 @@ impl PoolContract {
     }
 
     pub fn fund_invoice(env: Env, invoice_id: BytesN<32>) -> bool {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
-        admin.require_auth();
+        // Permissionless: any caller may trigger funding for an eligible invoice.
+        // Access control is enforced entirely through eligibility checks below
+        // (invoice must be in Listed status, asset must match the pool's asset,
+        // and the pool must have sufficient liquidity).  There is no admin gate
+        // so that capital allocation cannot be censored or selectively withheld.
+        //
+        // See README §"Known Centralization Risks & Roadmap" for the longer-term
+        // governance design that will let LPs signal approval on funding decisions.
 
         let invoice_contract: Address = env
             .storage()
@@ -371,8 +377,10 @@ impl PoolContract {
             .instance()
             .get(&DataKey::EscrowContract)
             .unwrap();
+        let pool_address = env.current_contract_address();
         let mut args = Vec::new(&env);
         args.push_back(invoice_id.clone().into_val(&env));
+        args.push_back(pool_address.into_val(&env));
         let _: bool =
             env.invoke_contract(&escrow_contract, &Symbol::new(&env, "handle_default"), args);
 

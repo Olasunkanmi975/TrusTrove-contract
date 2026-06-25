@@ -85,9 +85,9 @@ Holds USDC between pool funding and issuer payout. Only callable by `pool_contra
 
 ```
 lock(invoice_id, amount) → bool
-release_to_issuer(invoice_id) → bool
+release_to_issuer(invoice_id, issuer) → bool
 release_to_pool(invoice_id, repayment_amount) → bool
-handle_default(invoice_id) → bool
+handle_default(invoice_id, caller) → bool   ← admin or pool_contract
 get_locked(invoice_id) → u128
 ```
 
@@ -161,6 +161,52 @@ bash scripts/deploy.sh
 ```
 
 The deploy script prints all four contract IDs at the end. Paste them into `TrusTrove-app/.env.local`.
+
+---
+
+## Known Centralization Risks & Roadmap
+
+TrusTrove is in active development on Stellar testnet. Several centralization trade-offs were made deliberately to ship a working protocol quickly. They are documented here so contributors and users understand the current trust model and can help drive the path to a more decentralized design.
+
+### Admin key controls critical operations
+
+The deployer wallet that calls `initialize()` on each contract becomes its `admin`. That single key currently controls:
+
+- Registering and revoking verified issuers/buyers (`registry_contract`)
+- Emergency pausing (not yet implemented — see roadmap below)
+- Triggering `handle_default` as a fallback recovery path (`escrow_contract`)
+
+**Risk:** Loss or compromise of the admin key has a high blast radius. A single actor also introduces censorship risk for issuer onboarding.
+
+**Roadmap:** Migrate admin to a multi-sig (e.g., 3-of-5 Stellar signers) before any mainnet deployment.
+
+### `fund_invoice` was previously admin-gated
+
+Prior to this change, `pool::fund_invoice` required `admin.require_auth()`, meaning capital allocation was entirely at the admin's discretion. This created censorship risk — the admin could favour certain issuers, block competitors, or halt funding entirely with no on-chain accountability.
+
+**Current state (this release):** `fund_invoice` is now **permissionless**. Any caller can trigger funding for any invoice that passes the on-chain eligibility checks:
+1. Invoice status must be `Listed` (status 1)
+2. Invoice funding asset must match the pool's asset
+3. Pool must have sufficient available liquidity
+
+No off-chain approval or admin signature is required.
+
+**Longer-term governance design (not yet implemented):**
+
+The goal is LP-governed capital allocation:
+
+- LPs stake their LP tokens to signal approval for specific invoices ("LP voting")
+- An invoice becomes eligible once a quorum of LP-weighted votes approves it
+- Admin retains only an emergency pause capability (circuit breaker), not funding control
+- Governance parameters (quorum threshold, voting window) are upgradeable by LP vote
+
+If you want to contribute to governance design, open an issue tagged `complexity:high` and link your proposal.
+
+### No emergency pause mechanism
+
+There is currently no circuit breaker. If a critical bug is found post-deployment the only recourse is to stop directing traffic to the affected contracts via the frontend.
+
+**Roadmap:** Add an `admin_pause() / admin_unpause()` function pair to each contract, guarded behind multi-sig, that blocks state-changing calls while reads remain live.
 
 ---
 
