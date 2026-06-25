@@ -1,7 +1,11 @@
 #![cfg(test)]
 
 use crate::{RegistryContract, RegistryContractClient};
-use soroban_sdk::{map, testutils::Address as _, vec, Address, Env, String, Vec};
+use soroban_sdk::{
+    map,
+    testutils::{Address as _, MockAuth, MockAuthInvoke},
+    vec, Address, Env, IntoVal, String, Val, Vec,
+};
 
 fn setup() -> (Env, RegistryContractClient<'static>) {
     let env = Env::default();
@@ -223,4 +227,94 @@ fn test_batch_register_issuers_mixed() {
     assert!(client.is_verified(&issuer1));
     assert!(client.is_verified(&issuer2));
     assert!(client.is_verified(&issuer3));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #2)")]
+fn test_register_buyer_duplicate() {
+    let (env, client) = setup();
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+    let buyer = Address::generate(&env);
+    client.register_buyer(&buyer, &map![&env]);
+    client.register_buyer(&buyer, &map![&env]);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #3)")]
+fn test_get_admin_not_found() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register_contract(None, RegistryContract);
+    let client = RegistryContractClient::new(&env, &contract_id);
+    client.get_admin();
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #3)")]
+fn test_revoke_admin_not_found() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register_contract(None, RegistryContract);
+    let client = RegistryContractClient::new(&env, &contract_id);
+    client.revoke(&Address::generate(&env));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #3)")]
+fn test_revoke_nonexistent_profile() {
+    let (env, client) = setup();
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+    let unknown = Address::generate(&env);
+    client.revoke(&unknown);
+}
+
+#[test]
+#[should_panic]
+fn test_revoke_not_authorized() {
+    let env = Env::default();
+    let contract_id = env.register_contract(None, RegistryContract);
+    let client = RegistryContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    env.mock_auths(&[MockAuth {
+        address: &admin,
+        invoke: &MockAuthInvoke {
+            contract: &contract_id,
+            fn_name: "initialize",
+            args: (admin.clone(),).into_val(&env),
+            sub_invokes: &[],
+        },
+    }]);
+    client.initialize(&admin);
+
+    let issuer = Address::generate(&env);
+    let empty_map: soroban_sdk::Map<soroban_sdk::String, soroban_sdk::String> =
+        soroban_sdk::Map::new(&env);
+    let reg_args: Vec<Val> = vec![&env, issuer.clone().into_val(&env), empty_map.into_val(&env)];
+    env.mock_auths(&[MockAuth {
+        address: &issuer,
+        invoke: &MockAuthInvoke {
+            contract: &contract_id,
+            fn_name: "register_issuer",
+            args: reg_args,
+            sub_invokes: &[],
+        },
+    }]);
+    client.register_issuer(&issuer, &soroban_sdk::Map::new(&env));
+
+    // Call revoke without admin auth -> should panic on admin.require_auth()
+    client.revoke(&issuer);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #3)")]
+fn test_batch_register_issuers_no_admin() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register_contract(None, RegistryContract);
+    let client = RegistryContractClient::new(&env, &contract_id);
+    let entries = Vec::new(&env);
+    client.batch_register_issuers(&entries);
 }
