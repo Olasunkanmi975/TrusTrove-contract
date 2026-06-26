@@ -3,6 +3,8 @@
 use crate::{RegistryContract, RegistryContractClient};
 use soroban_sdk::{map, testutils::Address as _, vec, Address, Env, String, Vec};
 
+use crate::VerificationStatus;
+
 fn setup() -> (Env, RegistryContractClient<'static>) {
     let env = Env::default();
     env.mock_all_auths();
@@ -258,4 +260,89 @@ fn test_verify_profile_unknown_panics() {
     client.initialize(&admin);
     let unknown = Address::generate(&env);
     client.verify_profile(&unknown, &true);
+}
+
+#[test]
+fn test_get_verification_status_unregistered() {
+    let (env, client) = setup();
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+    let unknown = Address::generate(&env);
+    assert_eq!(
+        client.get_verification_status(&unknown),
+        VerificationStatus::Unregistered
+    );
+}
+
+#[test]
+fn test_get_verification_status_verified() {
+    let (env, client) = setup();
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+    let issuer = Address::generate(&env);
+    client.register_issuer(&issuer, &map![&env]);
+    assert_eq!(
+        client.get_verification_status(&issuer),
+        VerificationStatus::Verified
+    );
+}
+
+#[test]
+fn test_get_verification_status_revoked() {
+    let (env, client) = setup();
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+    let issuer = Address::generate(&env);
+    client.register_issuer(&issuer, &map![&env]);
+    client.revoke(&issuer);
+    assert_eq!(
+        client.get_verification_status(&issuer),
+        VerificationStatus::Revoked
+    );
+}
+
+#[test]
+fn test_get_verification_status_distinguishes_revoked_from_unregistered() {
+    let (env, client) = setup();
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+
+    let never_registered = Address::generate(&env);
+    let revoked = Address::generate(&env);
+
+    client.register_issuer(&revoked, &map![&env]);
+    client.revoke(&revoked);
+
+    // is_verified returns false for both — indistinguishable
+    assert!(!client.is_verified(&never_registered));
+    assert!(!client.is_verified(&revoked));
+
+    // get_verification_status tells them apart
+    assert_eq!(
+        client.get_verification_status(&never_registered),
+        VerificationStatus::Unregistered
+    );
+    assert_eq!(
+        client.get_verification_status(&revoked),
+        VerificationStatus::Revoked
+    );
+}
+
+#[test]
+fn test_get_verification_status_re_verified_returns_verified() {
+    let (env, client) = setup();
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+    let issuer = Address::generate(&env);
+    client.register_issuer(&issuer, &map![&env]);
+    client.revoke(&issuer);
+    assert_eq!(
+        client.get_verification_status(&issuer),
+        VerificationStatus::Revoked
+    );
+    client.verify_profile(&issuer, &true);
+    assert_eq!(
+        client.get_verification_status(&issuer),
+        VerificationStatus::Verified
+    );
 }

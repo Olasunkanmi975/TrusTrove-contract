@@ -123,6 +123,18 @@ impl RegistryContract {
             .unwrap_or(false)
     }
 
+    pub fn get_verification_status(env: Env, address: Address) -> VerificationStatus {
+        match env
+            .storage()
+            .persistent()
+            .get::<_, Profile>(&DataKey::Profile(address))
+        {
+            None => VerificationStatus::Unregistered,
+            Some(p) if p.verified => VerificationStatus::Verified,
+            Some(_) => VerificationStatus::Revoked,
+        }
+    }
+
     pub fn revoke(env: Env, address: Address) -> bool {
         let admin: Address = env
             .storage()
