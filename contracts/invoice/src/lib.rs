@@ -95,7 +95,9 @@ impl InvoiceContract {
             .instance()
             .get(&DataKey::SupportedAssetCount)
             .unwrap_or(0);
-        env.storage().instance().set(&DataKey::SupportedAssetCount, &(count + 1));
+        env.storage()
+            .instance()
+            .set(&DataKey::SupportedAssetCount, &(count + 1));
         env.storage().persistent().set(&key, &true);
     }
 
@@ -117,7 +119,9 @@ impl InvoiceContract {
             .instance()
             .get(&DataKey::SupportedAssetCount)
             .unwrap_or(0);
-        env.storage().instance().set(&DataKey::SupportedAssetCount, &(count - 1));
+        env.storage()
+            .instance()
+            .set(&DataKey::SupportedAssetCount, &(count - 1));
         env.storage().persistent().remove(&key);
     }
 
@@ -189,7 +193,11 @@ impl InvoiceContract {
             panic_with_error!(&env, InvoiceError::BuyerNotVerified);
         }
 
-        if !env.storage().persistent().has(&DataKey::SupportedAsset(funding_asset.clone())) {
+        if !env
+            .storage()
+            .persistent()
+            .has(&DataKey::SupportedAsset(funding_asset.clone()))
+        {
             panic_with_error!(&env, InvoiceError::UnsupportedAsset);
         }
 

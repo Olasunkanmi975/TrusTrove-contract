@@ -79,7 +79,12 @@ impl RegistryContract {
         true
     }
 
-    pub fn batch_register_issuers(env: Env, entries: Vec<(Address, Map<String, String>)>) -> u32 {
+    // Returns the list of addresses that were skipped (already registered) so
+    // the caller knows exactly which entries were not processed (#66).
+    pub fn batch_register_issuers(
+        env: Env,
+        entries: Vec<(Address, Map<String, String>)>,
+    ) -> Vec<Address> {
         let admin: Address = env
             .storage()
             .instance()
@@ -87,11 +92,13 @@ impl RegistryContract {
             .unwrap_or_else(|| panic_with_error!(&env, RegistryError::NotFound));
         admin.require_auth();
 
-        let mut count: u32 = 0;
+        let mut skipped: Vec<Address> = Vec::new(&env);
+        let mut registered: u32 = 0;
         for entry in entries.iter() {
             let (address, metadata) = entry;
             let key = DataKey::Profile(address.clone());
             if env.storage().persistent().has(&key) {
+                skipped.push_back(address.clone());
                 continue;
             }
 
@@ -105,10 +112,13 @@ impl RegistryContract {
 
             persistent_set(&env, &key, &profile);
             events::issuer_registered(&env, &address);
-            count += 1;
+            registered += 1;
         }
 
-        count
+        if registered > 0 {
+            Self::extend_instance_ttl(&env);
+        }
+        skipped
     }
 
     /// Registers a new buyer profile with initial metadata.
@@ -225,22 +235,18 @@ impl RegistryContract {
             .unwrap_or(false)
     }
 
-    /// Revokes verification for a registered profile.
-    ///
-    /// # Arguments
-    /// * `env` - The Soroban environment.
-    /// * `address` - The address to revoke.
-    ///
-    /// # Returns
-    /// * `bool` - `true` when revocation succeeds.
-    ///
-    /// # Panics
-    /// * `NotFound` if the admin or the profile address is missing.
-    ///
-    /// # Example
-    /// ```ignore
-    /// let result = client.revoke(&address);
-    /// ```
+    pub fn get_verification_status(env: Env, address: Address) -> VerificationStatus {
+        match env
+            .storage()
+            .persistent()
+            .get::<_, Profile>(&DataKey::Profile(address))
+        {
+            None => VerificationStatus::Unregistered,
+            Some(p) if p.verified => VerificationStatus::Verified,
+            Some(_) => VerificationStatus::Revoked,
+        }
+    }
+
     pub fn revoke(env: Env, address: Address) -> bool {
         let admin: Address = env
             .storage()
@@ -299,5 +305,11 @@ impl RegistryContract {
             .instance()
             .get(&DataKey::Admin)
             .unwrap_or_else(|| panic_with_error!(&env, RegistryError::NotFound))
+    }
+}
+
+impl RegistryContract {
+    fn extend_instance_ttl(env: &Env) {
+        env.storage().instance().extend_ttl(100, 2_000_000);
     }
 }
