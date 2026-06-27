@@ -344,6 +344,35 @@ fn test_get_by_status_filters_correctly() {
 }
 
 #[test]
+fn test_move_status_index_efficient_with_many_invoices() {
+    let (env, client, issuer, buyer, _, usdc) = setup();
+    let due_date = env.ledger().timestamp() + 86400;
+    const N: u32 = 50;
+
+    let first_id = client.create(&issuer, &buyer, &1_000_000_000, &due_date, &usdc);
+    for i in 1..N {
+        client.create(
+            &issuer,
+            &buyer,
+            &(1_000_000_000 + i as u128),
+            &due_date,
+            &usdc,
+        );
+    }
+
+    assert_eq!(client.get_by_status(&InvoiceStatus::Created).len(), N as usize);
+
+    // O(1) status move: cost does not depend on bucket size
+    client.list_for_financing(&first_id, &200);
+
+    assert_eq!(
+        client.get_by_status(&InvoiceStatus::Created).len(),
+        (N - 1) as usize
+    );
+    assert_eq!(client.get_by_status(&InvoiceStatus::Listed).len(), 1);
+}
+
+#[test]
 #[should_panic(expected = "Error(Contract, #10)")]
 fn test_double_confirmation_panics() {
     let (env, client, issuer, buyer, _, usdc) = setup();
