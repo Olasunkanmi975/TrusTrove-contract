@@ -83,7 +83,10 @@ impl RegistryContract {
 
     // Returns the list of addresses that were skipped (already registered) so
     // the caller knows exactly which entries were not processed (#66).
-    pub fn batch_register_issuers(env: Env, entries: Vec<(Address, Map<String, String>)>) -> Vec<Address> {
+    pub fn batch_register_issuers(
+        env: Env,
+        entries: Vec<(Address, Map<String, String>)>,
+    ) -> Vec<Address> {
         let admin: Address = env
             .storage()
             .instance()

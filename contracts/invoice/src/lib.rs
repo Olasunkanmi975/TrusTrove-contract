@@ -675,8 +675,7 @@ impl InvoiceContract {
         env.storage()
             .persistent()
             .get::<_, InvoiceStatus>(&DataKey::FieldStatus(invoice_id))
-            .unwrap_or_else(|| panic_with_error!(&env, InvoiceError::NotFound))
-            as u32
+            .unwrap_or_else(|| panic_with_error!(&env, InvoiceError::NotFound)) as u32
     }
 
     pub fn get_face_value(env: Env, invoice_id: BytesN<32>) -> u128 {
@@ -868,7 +867,12 @@ impl InvoiceContract {
         write_field_status(&env, &invoice_id, InvoiceStatus::Expired);
         Self::extend_instance_ttl(&env);
 
-        self::move_status_index(&env, &invoice_id, InvoiceStatus::Listed, InvoiceStatus::Expired);
+        self::move_status_index(
+            &env,
+            &invoice_id,
+            InvoiceStatus::Listed,
+            InvoiceStatus::Expired,
+        );
         events::invoice_expired(&env, &invoice_id);
         true
     }

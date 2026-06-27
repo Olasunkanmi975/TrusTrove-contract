@@ -112,7 +112,15 @@ fn setup_with_admin() -> SetupWithAdmin {
 
     let usdc_asset = Address::generate(&env);
 
-    (env, client, issuer, buyer, registry_client, usdc_asset, admin)
+    (
+        env,
+        client,
+        issuer,
+        buyer,
+        registry_client,
+        usdc_asset,
+        admin,
+    )
 }
 
 fn mock_pool_with_asset(env: &Env, asset: &Address) -> Address {
@@ -682,7 +690,10 @@ fn test_get_status_reflects_current_status() {
     let invoice_id = client.create(&issuer, &buyer, &1_000_000_000, &due_date, &usdc);
 
     // Created = 0
-    assert_eq!(client.get_status(&invoice_id), InvoiceStatus::Created as u32);
+    assert_eq!(
+        client.get_status(&invoice_id),
+        InvoiceStatus::Created as u32
+    );
 
     client.list_for_financing(&invoice_id, &200);
     // Listed = 1
