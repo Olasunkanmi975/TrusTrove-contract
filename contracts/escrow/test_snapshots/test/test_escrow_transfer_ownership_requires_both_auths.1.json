@@ -1,6 +1,6 @@
 {
   "generators": {
-    "address": 5,
+    "address": 6,
     "nonce": 0
   },
   "auth": [
@@ -364,21 +364,11 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000005"
               },
               {
-                "symbol": "lock"
+                "symbol": "transfer_ownership"
               }
             ],
             "data": {
-              "vec": [
-                {
-                  "bytes": "0000000000000000000000000000000000000000000000000000000000000000"
-                },
-                {
-                  "u128": {
-                    "hi": 0,
-                    "lo": 1000000000
-                  }
-                }
-              ]
+              "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
             }
           }
         }
@@ -408,7 +398,7 @@
                   "string": "Unauthorized function call for address"
                 },
                 {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
                 }
               ]
             }
@@ -490,18 +480,12 @@
                   "string": "contract call failed"
                 },
                 {
-                  "symbol": "lock"
+                  "symbol": "transfer_ownership"
                 },
                 {
                   "vec": [
                     {
-                      "bytes": "0000000000000000000000000000000000000000000000000000000000000000"
-                    },
-                    {
-                      "u128": {
-                        "hi": 0,
-                        "lo": 1000000000
-                      }
+                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
                     }
                   ]
                 }

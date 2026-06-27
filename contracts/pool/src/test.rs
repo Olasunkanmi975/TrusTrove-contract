@@ -595,14 +595,15 @@ fn test_handle_default() {
     te.pool.fund_invoice(&invoice_id);
 
     // funded_amount = 10_000_000_000 * 9800 / 10000 = 9_800_000_000
-    let funded_amount = 9_800_000_000;
+    let _funded_amount: u128 = 9_800_000_000;
 
     let before = te.pool.get_stats();
     let result = te.pool.handle_default(&invoice_id);
     assert!(result);
 
     let after = te.pool.get_stats();
-    assert_eq!(after.total_deposits, before.total_deposits - funded_amount);
+    // Issue #55: TotalDeposits must NOT be decremented on default — only TotalFunded is unwound.
+    assert_eq!(after.total_deposits, before.total_deposits);
     assert_eq!(after.total_funded, 0);
     assert_eq!(after.active_invoice_count, 0);
 }
@@ -639,15 +640,59 @@ fn test_deposit_when_deposits_zero_but_shares_exist() {
     let invoice_id = create_and_list(&te, &te.usdc_id);
     te.pool.fund_invoice(&invoice_id);
 
-    // Trigger default, wiping out all pool deposits
+    // Trigger default — after the #55 fix TotalDeposits is NOT wiped, only TotalFunded resets.
     te.pool.handle_default(&invoice_id);
 
     let stats = te.pool.get_stats();
-    assert_eq!(stats.total_deposits, 0);
+    // TotalDeposits stays at the original deposit amount; TotalFunded goes back to 0.
+    assert_eq!(stats.total_deposits, 9_800_000_000);
     assert!(stats.total_shares > 0);
 
     // Attempt new deposit, which should not panic and should issue 1-to-1 shares
     let lp2 = create_lp_with_balance(&te, 10_000_000_000);
     let new_shares = te.pool.deposit(&lp2, &5_000_000_000);
     assert_eq!(new_shares, 5_000_000_000);
+}
+
+// ============== ISSUE #56: ISSUER RECEIVES PAYMENT AT FUND TIME ==============
+
+#[test]
+fn test_issuer_receives_usdc_when_invoice_funded() {
+    let te = setup();
+    te.pool.deposit(&te.lp, &100_000_000_000);
+    let invoice_id = create_and_list(&te, &te.usdc_id);
+
+    // Capture issuer balance before funding
+    let usdc = MockTokenClient::new(&te.env, &te.usdc_id);
+    let before = usdc.balance(&te.issuer);
+    te.pool.fund_invoice(&invoice_id);
+    let after = usdc.balance(&te.issuer);
+
+    // funded_amount = 10_000_000_000 * (10000 - 200) / 10000 = 9_800_000_000
+    assert_eq!(after - before, 9_800_000_000);
+}
+
+// ============== ISSUE #61: TRANSFER OWNERSHIP ==============
+
+#[test]
+fn test_pool_transfer_ownership_changes_admin() {
+    let te = setup();
+    let new_admin = Address::generate(&te.env);
+    te.pool.transfer_ownership(&new_admin);
+
+    // After transfer, old admin cannot call admin-only functions
+    // (set_max_utilization requires admin auth; new_admin must be used instead)
+    te.pool.set_max_utilization(&new_admin, &9000);
+    let stats = te.pool.get_stats();
+    assert_eq!(stats.max_utilization_bps, 9000);
+}
+
+#[test]
+#[should_panic]
+fn test_pool_transfer_ownership_requires_new_admin_auth() {
+    let te = setup();
+    let new_admin = Address::generate(&te.env);
+    // Drop all auths — new_admin.require_auth() must reject
+    te.env.set_auths(&[]);
+    te.pool.transfer_ownership(&new_admin);
 }

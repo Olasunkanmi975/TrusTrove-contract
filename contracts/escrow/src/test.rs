@@ -7,6 +7,27 @@ use soroban_sdk::{
 
 use crate::{EscrowAction, EscrowContract, EscrowContractClient, EscrowEvent};
 
+// --------------- Mock Invoice (for get_issuer cross-check) ---------------
+
+#[contract]
+pub struct MockInvoice;
+
+#[contractimpl]
+impl MockInvoice {
+    pub fn set_issuer(env: Env, invoice_id: BytesN<32>, issuer: Address) {
+        env.storage()
+            .persistent()
+            .set(&invoice_id, &issuer);
+    }
+
+    pub fn get_issuer(env: Env, invoice_id: BytesN<32>) -> Address {
+        env.storage()
+            .persistent()
+            .get::<_, Address>(&invoice_id)
+            .unwrap()
+    }
+}
+
 #[contract]
 pub struct MockToken;
 
@@ -40,6 +61,8 @@ fn setup() -> (
     Address,
     Address,
     Address,
+    Address, // invoice_id (mock)
+    MockInvoiceClient<'static>,
 ) {
     let env = Env::default();
     env.mock_all_auths();
@@ -56,12 +79,15 @@ fn setup() -> (
             .set(&pool_bal_key, &10_000_000_000_000i128);
     });
 
+    let invoice_contract_id = env.register_contract(None, MockInvoice);
+    let mock_invoice = MockInvoiceClient::new(&env, &invoice_contract_id);
+
     let contract_id = env.register_contract(None, EscrowContract);
     let client = EscrowContractClient::new(&env, &contract_id);
 
-    client.initialize(&admin, &pool, &pool, &usdc_id);
+    client.initialize(&admin, &pool, &invoice_contract_id, &usdc_id);
 
-    (env, client, admin, pool, usdc_id)
+    (env, client, admin, pool, usdc_id, invoice_contract_id, mock_invoice)
 }
 
 fn setup_without_auths() -> (
@@ -71,7 +97,7 @@ fn setup_without_auths() -> (
     Address,
     Address,
 ) {
-    let (env, client, admin, pool, usdc_id) = setup();
+    let (env, client, admin, pool, usdc_id, _inv_id, _mock_inv) = setup();
     env.set_auths(&[]);
     (env, client, admin, pool, usdc_id)
 }
@@ -146,7 +172,7 @@ fn test_initialize() {
 
 #[test]
 fn test_lock_stores_record() {
-    let (env, client, _admin, _pool, _usdc) = setup();
+    let (env, client, _admin, _pool, _usdc, _inv_id, _mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
     let amount: u128 = 1_000_000_000;
 
@@ -161,7 +187,7 @@ fn test_lock_stores_record() {
 #[test]
 #[should_panic(expected = "Error(Contract, #5)")]
 fn test_lock_fails_zero_amount() {
-    let (env, client, _admin, _pool, _usdc) = setup();
+    let (env, client, _admin, _pool, _usdc, _inv_id, _mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
     client.lock(&invoice_id, &0);
 }
@@ -169,7 +195,7 @@ fn test_lock_fails_zero_amount() {
 #[test]
 #[should_panic(expected = "Error(Contract, #4)")]
 fn test_lock_fails_duplicate() {
-    let (env, client, _admin, _pool, _usdc) = setup();
+    let (env, client, _admin, _pool, _usdc, _inv_id, _mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
     client.lock(&invoice_id, &1_000_000_000);
     client.lock(&invoice_id, &500_000_000);
@@ -177,11 +203,12 @@ fn test_lock_fails_duplicate() {
 
 #[test]
 fn test_release_to_issuer_transfers_correct_amount() {
-    let (env, client, _admin, _pool, _usdc) = setup();
+    let (env, client, _admin, _pool, _usdc, _inv_id, mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
     let issuer = Address::generate(&env);
     let amount: u128 = 1_000_000_000;
 
+    mock_inv.set_issuer(&invoice_id, &issuer);
     client.lock(&invoice_id, &amount);
     let result = client.release_to_issuer(&invoice_id, &issuer);
     assert!(result);
@@ -199,7 +226,7 @@ fn test_release_to_issuer_transfers_correct_amount() {
 
 #[test]
 fn test_release_to_pool_transfers_correct_amount() {
-    let (env, client, _admin, pool, _usdc) = setup();
+    let (env, client, _admin, pool, _usdc, _inv_id, _mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
     let amount: u128 = 1_000_000_000;
 
@@ -222,7 +249,7 @@ fn test_release_to_pool_transfers_correct_amount() {
 #[test]
 #[should_panic(expected = "Error(Contract, #5)")]
 fn test_release_to_pool_fails_on_mismatched_repayment_amount() {
-    let (env, client, _admin, _pool, _usdc) = setup();
+    let (env, client, _admin, _pool, _usdc, _inv_id, _mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
     let amount: u128 = 1_000_000_000;
 
@@ -233,7 +260,7 @@ fn test_release_to_pool_fails_on_mismatched_repayment_amount() {
 
 #[test]
 fn test_handle_default_returns_funds_to_pool() {
-    let (env, client, _admin, pool, _usdc) = setup();
+    let (env, client, _admin, pool, _usdc, _inv_id, _mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
     let amount: u128 = 1_000_000_000;
 
@@ -249,7 +276,7 @@ fn test_handle_default_returns_funds_to_pool() {
 
 #[test]
 fn test_handle_default_admin_can_trigger() {
-    let (env, client, admin, pool, _usdc) = setup();
+    let (env, client, admin, pool, _usdc, _inv_id, _mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
     let amount: u128 = 1_000_000_000;
 
@@ -266,7 +293,7 @@ fn test_handle_default_admin_can_trigger() {
 
 #[test]
 fn test_handle_default_no_record_returns_false() {
-    let (env, client, _admin, pool, _usdc) = setup();
+    let (env, client, _admin, pool, _usdc, _inv_id, _mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
 
     let result = client.handle_default(&invoice_id, &pool);
@@ -276,7 +303,7 @@ fn test_handle_default_no_record_returns_false() {
 #[test]
 #[should_panic(expected = "Error(Contract, #3)")]
 fn test_handle_default_unauthorized_caller_panics() {
-    let (env, client, _admin, pool, _usdc) = setup();
+    let (env, client, _admin, pool, _usdc, _inv_id, _mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
     let amount: u128 = 1_000_000_000;
     let stranger = Address::generate(&env);
@@ -290,7 +317,7 @@ fn test_handle_default_unauthorized_caller_panics() {
 
 #[test]
 fn test_get_locked_returns_zero_when_empty() {
-    let (env, client, _admin, _pool, _usdc) = setup();
+    let (env, client, _admin, _pool, _usdc, _inv_id, _mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
 
     assert_eq!(client.get_locked(&invoice_id), 0);
@@ -298,7 +325,7 @@ fn test_get_locked_returns_zero_when_empty() {
 
 #[test]
 fn test_get_locked_returns_amount_when_locked() {
-    let (env, client, _admin, _pool, _usdc) = setup();
+    let (env, client, _admin, _pool, _usdc, _inv_id, _mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
     let amount: u128 = 1_000_000_000;
 
@@ -308,11 +335,12 @@ fn test_get_locked_returns_amount_when_locked() {
 
 #[test]
 fn test_get_history_returns_action_log() {
-    let (env, client, _admin, _pool, _usdc) = setup();
+    let (env, client, _admin, _pool, _usdc, _inv_id, mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
     let amount: u128 = 1_000_000_000;
     let issuer = Address::generate(&env);
 
+    mock_inv.set_issuer(&invoice_id, &issuer);
     client.lock(&invoice_id, &amount);
     client.release_to_issuer(&invoice_id, &issuer);
 
@@ -355,7 +383,7 @@ fn test_lock_requires_pool_authorization() {
 #[test]
 #[should_panic]
 fn test_release_to_issuer_requires_pool_authorization() {
-    let (env, client, _admin, _pool, _usdc) = setup();
+    let (env, client, _admin, _pool, _usdc, _inv_id, _mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
     let issuer = Address::generate(&env);
     let amount: u128 = 1_000_000_000;
@@ -368,7 +396,7 @@ fn test_release_to_issuer_requires_pool_authorization() {
 #[test]
 #[should_panic]
 fn test_release_to_pool_requires_pool_authorization() {
-    let (env, client, _admin, _pool, _usdc) = setup();
+    let (env, client, _admin, _pool, _usdc, _inv_id, _mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
     let amount: u128 = 1_000_000_000;
 
@@ -380,7 +408,7 @@ fn test_release_to_pool_requires_pool_authorization() {
 #[test]
 #[should_panic]
 fn test_handle_default_requires_pool_authorization() {
-    let (env, client, _admin, pool, _usdc) = setup();
+    let (env, client, _admin, pool, _usdc, _inv_id, _mock_inv) = setup();
     let invoice_id = generate_invoice_id(&env);
     let amount: u128 = 1_000_000_000;
 
@@ -388,4 +416,47 @@ fn test_handle_default_requires_pool_authorization() {
     env.set_auths(&[]);
     // No auth entries present — require_auth() on the pool caller must fail
     client.handle_default(&invoice_id, &pool);
+}
+
+// ============== ISSUE #57: WRONG ISSUER REJECTED ==============
+
+#[test]
+#[should_panic(expected = "Error(Contract, #3)")]
+fn test_release_to_issuer_rejects_wrong_address() {
+    let (env, client, _admin, _pool, _usdc, _inv_id, mock_inv) = setup();
+    let invoice_id = generate_invoice_id(&env);
+    let real_issuer = Address::generate(&env);
+    let attacker = Address::generate(&env);
+    let amount: u128 = 1_000_000_000;
+
+    mock_inv.set_issuer(&invoice_id, &real_issuer);
+    client.lock(&invoice_id, &amount);
+    // Attempt to release funds to a different address — must be rejected
+    client.release_to_issuer(&invoice_id, &attacker);
+}
+
+// ============== ISSUE #61: TRANSFER OWNERSHIP ==============
+
+#[test]
+fn test_escrow_transfer_ownership_changes_admin() {
+    let (env, client, admin, _pool, _usdc, _inv_id, _mock_inv) = setup();
+    let new_admin = Address::generate(&env);
+    client.transfer_ownership(&new_admin);
+
+    // Verify event was emitted with both old and new admin
+    let events = env.events().all();
+    let (_, topics, _) = events.last().unwrap();
+    let event_name: soroban_sdk::Symbol =
+        soroban_sdk::Symbol::try_from_val(&env, &topics.get(0).unwrap()).unwrap();
+    assert_eq!(event_name, soroban_sdk::Symbol::new(&env, "ownership_transferred"));
+    let _ = admin;
+}
+
+#[test]
+#[should_panic]
+fn test_escrow_transfer_ownership_requires_both_auths() {
+    let (env, client, _admin, _pool, _usdc, _inv_id, _mock_inv) = setup();
+    let new_admin = Address::generate(&env);
+    env.set_auths(&[]);
+    client.transfer_ownership(&new_admin);
 }

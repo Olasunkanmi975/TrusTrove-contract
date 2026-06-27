@@ -875,6 +875,60 @@ impl InvoiceContract {
         address.require_auth();
     }
 
+    pub fn get_issuer(env: Env, invoice_id: BytesN<32>) -> Address {
+        // Returns the issuer address for an invoice.
+        //
+        // # Arguments
+        // * `env` - The Soroban environment.
+        // * `invoice_id` - The invoice to query.
+        //
+        // # Returns
+        // * `Address` - The issuer address.
+        //
+        // # Panics
+        // * `NotFound` if the invoice cannot be found.
+        //
+        // # Example
+        // ```ignore
+        // let issuer = client.get_issuer(&invoice_id);
+        // ```
+        let invoice: Invoice = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Invoice(invoice_id))
+            .unwrap_or_else(|| panic_with_error!(&env, InvoiceError::NotFound));
+        invoice.issuer
+    }
+
+    pub fn transfer_ownership(env: Env, new_admin: Address) {
+        // Transfers admin ownership to a new address.
+        //
+        // Requires authentication from BOTH the current admin and the incoming
+        // new admin, preventing accidental transfers to wrong addresses.
+        //
+        // # Arguments
+        // * `env` - The Soroban environment.
+        // * `new_admin` - The address that will become the new admin.
+        //
+        // # Panics
+        // * `NotFound` if the admin is not set.
+        //
+        // # Example
+        // ```ignore
+        // client.transfer_ownership(&new_admin);
+        // ```
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .unwrap_or_else(|| panic_with_error!(&env, InvoiceError::NotFound));
+        admin.require_auth();
+        new_admin.require_auth();
+        env.storage().instance().set(&DataKey::Admin, &new_admin);
+        events::ownership_transferred(&env, &admin, &new_admin);
+        Self::extend_instance_ttl(&env);
+    }
+
     pub fn expire_listing(env: Env, invoice_id: BytesN<32>) -> bool {
         let inv_key = DataKey::Invoice(invoice_id.clone());
         let mut invoice: Invoice = env
