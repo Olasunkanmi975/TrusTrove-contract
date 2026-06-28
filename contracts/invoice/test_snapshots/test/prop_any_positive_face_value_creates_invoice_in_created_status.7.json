@@ -46,7 +46,7 @@
                 {
                   "u128": {
                     "hi": 0,
-                    "lo": 613749679232322
+                    "lo": 694296018115251
                   }
                 },
                 {
@@ -304,7 +304,194 @@
                 },
                 "durability": "persistent",
                 "val": {
-                  "bytes": "9343002779782b70a813b927dabbd84decf57179bc3fa3f24acf2c7bf987a800"
+                  "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
+                }
+              }
+            },
+            "ext": "v0"
+          },
+          4095
+        ]
+      ],
+      [
+        {
+          "contract_data": {
+            "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
+            "key": {
+              "vec": [
+                {
+                  "symbol": "FieldDiscountBps"
+                },
+                {
+                  "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
+                }
+              ]
+            },
+            "durability": "persistent"
+          }
+        },
+        [
+          {
+            "last_modified_ledger_seq": 0,
+            "data": {
+              "contract_data": {
+                "ext": "v0",
+                "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
+                "key": {
+                  "vec": [
+                    {
+                      "symbol": "FieldDiscountBps"
+                    },
+                    {
+                      "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
+                    }
+                  ]
+                },
+                "durability": "persistent",
+                "val": {
+                  "u32": 0
+                }
+              }
+            },
+            "ext": "v0"
+          },
+          4095
+        ]
+      ],
+      [
+        {
+          "contract_data": {
+            "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
+            "key": {
+              "vec": [
+                {
+                  "symbol": "FieldFaceValue"
+                },
+                {
+                  "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
+                }
+              ]
+            },
+            "durability": "persistent"
+          }
+        },
+        [
+          {
+            "last_modified_ledger_seq": 0,
+            "data": {
+              "contract_data": {
+                "ext": "v0",
+                "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
+                "key": {
+                  "vec": [
+                    {
+                      "symbol": "FieldFaceValue"
+                    },
+                    {
+                      "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
+                    }
+                  ]
+                },
+                "durability": "persistent",
+                "val": {
+                  "u128": {
+                    "hi": 0,
+                    "lo": 694296018115251
+                  }
+                }
+              }
+            },
+            "ext": "v0"
+          },
+          4095
+        ]
+      ],
+      [
+        {
+          "contract_data": {
+            "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
+            "key": {
+              "vec": [
+                {
+                  "symbol": "FieldFundingAsset"
+                },
+                {
+                  "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
+                }
+              ]
+            },
+            "durability": "persistent"
+          }
+        },
+        [
+          {
+            "last_modified_ledger_seq": 0,
+            "data": {
+              "contract_data": {
+                "ext": "v0",
+                "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
+                "key": {
+                  "vec": [
+                    {
+                      "symbol": "FieldFundingAsset"
+                    },
+                    {
+                      "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
+                    }
+                  ]
+                },
+                "durability": "persistent",
+                "val": {
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
+                }
+              }
+            },
+            "ext": "v0"
+          },
+          4095
+        ]
+      ],
+      [
+        {
+          "contract_data": {
+            "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
+            "key": {
+              "vec": [
+                {
+                  "symbol": "FieldStatus"
+                },
+                {
+                  "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
+                }
+              ]
+            },
+            "durability": "persistent"
+          }
+        },
+        [
+          {
+            "last_modified_ledger_seq": 0,
+            "data": {
+              "contract_data": {
+                "ext": "v0",
+                "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
+                "key": {
+                  "vec": [
+                    {
+                      "symbol": "FieldStatus"
+                    },
+                    {
+                      "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
+                    }
+                  ]
+                },
+                "durability": "persistent",
+                "val": {
+                  "vec": [
+                    {
+                      "symbol": "Created"
+                    }
+                  ]
                 }
               }
             },
@@ -323,7 +510,7 @@
                   "symbol": "Invoice"
                 },
                 {
-                  "bytes": "9343002779782b70a813b927dabbd84decf57179bc3fa3f24acf2c7bf987a800"
+                  "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
                 }
               ]
             },
@@ -343,7 +530,7 @@
                       "symbol": "Invoice"
                     },
                     {
-                      "bytes": "9343002779782b70a813b927dabbd84decf57179bc3fa3f24acf2c7bf987a800"
+                      "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
                     }
                   ]
                 },
@@ -397,7 +584,7 @@
                       "val": {
                         "u128": {
                           "hi": 0,
-                          "lo": 613749679232322
+                          "lo": 694296018115251
                         }
                       }
                     },
@@ -437,7 +624,7 @@
                         "symbol": "id"
                       },
                       "val": {
-                        "bytes": "9343002779782b70a813b927dabbd84decf57179bc3fa3f24acf2c7bf987a800"
+                        "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
                       }
                     },
                     {
@@ -461,6 +648,17 @@
                         "symbol": "listed_at"
                       },
                       "val": "void"
+                    },
+                    {
+                      "key": {
+                        "symbol": "repaid_amount"
+                      },
+                      "val": {
+                        "u128": {
+                          "hi": 0,
+                          "lo": 0
+                        }
+                      }
                     },
                     {
                       "key": {
@@ -582,7 +780,7 @@
                 },
                 "durability": "persistent",
                 "val": {
-                  "bytes": "9343002779782b70a813b927dabbd84decf57179bc3fa3f24acf2c7bf987a800"
+                  "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
                 }
               }
             },
@@ -678,7 +876,7 @@
                 },
                 "durability": "persistent",
                 "val": {
-                  "bytes": "9343002779782b70a813b927dabbd84decf57179bc3fa3f24acf2c7bf987a800"
+                  "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
                 }
               }
             },
@@ -990,7 +1188,7 @@
                 {
                   "u128": {
                     "hi": 0,
-                    "lo": 613749679232322
+                    "lo": 694296018115251
                   }
                 },
                 {
@@ -1116,7 +1314,7 @@
                 "symbol": "invoice_created"
               },
               {
-                "bytes": "9343002779782b70a813b927dabbd84decf57179bc3fa3f24acf2c7bf987a800"
+                "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
               },
               {
                 "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
@@ -1131,7 +1329,7 @@
             "data": {
               "u128": {
                 "hi": 0,
-                "lo": 613749679232322
+                "lo": 694296018115251
               }
             }
           }
@@ -1155,7 +1353,7 @@
               }
             ],
             "data": {
-              "bytes": "9343002779782b70a813b927dabbd84decf57179bc3fa3f24acf2c7bf987a800"
+              "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
             }
           }
         }
@@ -1181,7 +1379,7 @@
               }
             ],
             "data": {
-              "bytes": "9343002779782b70a813b927dabbd84decf57179bc3fa3f24acf2c7bf987a800"
+              "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
             }
           }
         }
@@ -1252,7 +1450,7 @@
                   "val": {
                     "u128": {
                       "hi": 0,
-                      "lo": 613749679232322
+                      "lo": 694296018115251
                     }
                   }
                 },
@@ -1292,7 +1490,7 @@
                     "symbol": "id"
                   },
                   "val": {
-                    "bytes": "9343002779782b70a813b927dabbd84decf57179bc3fa3f24acf2c7bf987a800"
+                    "bytes": "43d8d8e55fe499a89060ff43dd61015877f1ed1358ecafad7ae95f7c292e0b62"
                   }
                 },
                 {
@@ -1316,6 +1514,17 @@
                     "symbol": "listed_at"
                   },
                   "val": "void"
+                },
+                {
+                  "key": {
+                    "symbol": "repaid_amount"
+                  },
+                  "val": {
+                    "u128": {
+                      "hi": 0,
+                      "lo": 0
+                    }
+                  }
                 },
                 {
                   "key": {

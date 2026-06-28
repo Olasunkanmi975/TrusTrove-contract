@@ -48,7 +48,7 @@
                 {
                   "u128": {
                     "hi": 0,
-                    "lo": 6109249833392
+                    "lo": 1000000000
                   }
                 }
               ]
@@ -65,13 +65,16 @@
           "function": {
             "contract_fn": {
               "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
-              "function_name": "handle_default",
+              "function_name": "release_to_pool",
               "args": [
                 {
                   "bytes": "0000000000000000000000000000000000000000000000000000000000000000"
                 },
                 {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                  "u128": {
+                    "hi": 0,
+                    "lo": 400000000
+                  }
                 }
               ]
             }
@@ -223,7 +226,7 @@
                 "val": {
                   "i128": {
                     "hi": 0,
-                    "lo": 10000000000000
+                    "lo": 9999400000000
                   }
                 }
               }
@@ -265,7 +268,7 @@
                 "val": {
                   "i128": {
                     "hi": 0,
-                    "lo": 0
+                    "lo": 600000000
                   }
                 }
               }
@@ -365,7 +368,7 @@
                           "val": {
                             "u128": {
                               "hi": 0,
-                              "lo": 6109249833392
+                              "lo": 1000000000
                             }
                           }
                         },
@@ -396,7 +399,7 @@
                           "val": {
                             "vec": [
                               {
-                                "symbol": "DefaultHandled"
+                                "symbol": "ReleasedToPool"
                               }
                             ]
                           }
@@ -408,7 +411,7 @@
                           "val": {
                             "u128": {
                               "hi": 0,
-                              "lo": 6109249833392
+                              "lo": 400000000
                             }
                           }
                         },
@@ -429,6 +432,79 @@
                           }
                         }
                       ]
+                    }
+                  ]
+                }
+              }
+            },
+            "ext": "v0"
+          },
+          4095
+        ]
+      ],
+      [
+        {
+          "contract_data": {
+            "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
+            "key": {
+              "vec": [
+                {
+                  "symbol": "Locked"
+                },
+                {
+                  "bytes": "0000000000000000000000000000000000000000000000000000000000000000"
+                }
+              ]
+            },
+            "durability": "persistent"
+          }
+        },
+        [
+          {
+            "last_modified_ledger_seq": 0,
+            "data": {
+              "contract_data": {
+                "ext": "v0",
+                "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
+                "key": {
+                  "vec": [
+                    {
+                      "symbol": "Locked"
+                    },
+                    {
+                      "bytes": "0000000000000000000000000000000000000000000000000000000000000000"
+                    }
+                  ]
+                },
+                "durability": "persistent",
+                "val": {
+                  "map": [
+                    {
+                      "key": {
+                        "symbol": "amount"
+                      },
+                      "val": {
+                        "u128": {
+                          "hi": 0,
+                          "lo": 600000000
+                        }
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "invoice_id"
+                      },
+                      "val": {
+                        "bytes": "0000000000000000000000000000000000000000000000000000000000000000"
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "locked_at"
+                      },
+                      "val": {
+                        "u64": 0
+                      }
                     }
                   ]
                 }
@@ -630,7 +706,7 @@
                 {
                   "u128": {
                     "hi": 0,
-                    "lo": 6109249833392
+                    "lo": 1000000000
                   }
                 }
               ]
@@ -669,7 +745,7 @@
                 {
                   "i128": {
                     "hi": 0,
-                    "lo": 6109249833392
+                    "lo": 1000000000
                   }
                 }
               ]
@@ -718,7 +794,7 @@
             "data": {
               "u128": {
                 "hi": 0,
-                "lo": 6109249833392
+                "lo": 1000000000
               }
             }
           }
@@ -764,7 +840,7 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000004"
               },
               {
-                "symbol": "handle_default"
+                "symbol": "release_to_pool"
               }
             ],
             "data": {
@@ -773,7 +849,10 @@
                   "bytes": "0000000000000000000000000000000000000000000000000000000000000000"
                 },
                 {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                  "u128": {
+                    "hi": 0,
+                    "lo": 400000000
+                  }
                 }
               ]
             }
@@ -811,7 +890,7 @@
                 {
                   "i128": {
                     "hi": 0,
-                    "lo": 6109249833392
+                    "lo": 400000000
                   }
                 }
               ]
@@ -851,7 +930,7 @@
           "v0": {
             "topics": [
               {
-                "symbol": "default_resolved"
+                "symbol": "released_to_pool"
               },
               {
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000000"
@@ -863,7 +942,7 @@
             "data": {
               "u128": {
                 "hi": 0,
-                "lo": 6109249833392
+                "lo": 400000000
               }
             }
           }
@@ -883,7 +962,7 @@
                 "symbol": "fn_return"
               },
               {
-                "symbol": "handle_default"
+                "symbol": "release_to_pool"
               }
             ],
             "data": {
@@ -938,7 +1017,7 @@
             "data": {
               "u128": {
                 "hi": 0,
-                "lo": 0
+                "lo": 600000000
               }
             }
           }

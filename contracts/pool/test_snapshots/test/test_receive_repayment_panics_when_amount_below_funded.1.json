@@ -211,7 +211,31 @@
       ]
     ],
     [],
-    []
+    [
+      [
+        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5",
+        {
+          "function": {
+            "contract_fn": {
+              "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVAX5",
+              "function_name": "receive_repayment",
+              "args": [
+                {
+                  "bytes": "55e1249079d8b7d4ed5bdaf46f740a2e626d2bea6a824d555b95ed73c34b337d"
+                },
+                {
+                  "u128": {
+                    "hi": 0,
+                    "lo": 1000000000
+                  }
+                }
+              ]
+            }
+          },
+          "sub_invocations": []
+        }
+      ]
+    ]
   ],
   "ledger": {
     "protocol_version": 21,
@@ -1353,6 +1377,17 @@
                     },
                     {
                       "key": {
+                        "symbol": "repaid_amount"
+                      },
+                      "val": {
+                        "u128": {
+                          "hi": 0,
+                          "lo": 0
+                        }
+                      }
+                    },
+                    {
+                      "key": {
                         "symbol": "repaid_at"
                       },
                       "val": "void"
@@ -1852,6 +1887,39 @@
       [
         {
           "contract_data": {
+            "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5",
+            "key": {
+              "ledger_key_nonce": {
+                "nonce": 5806905060045992000
+              }
+            },
+            "durability": "temporary"
+          }
+        },
+        [
+          {
+            "last_modified_ledger_seq": 0,
+            "data": {
+              "contract_data": {
+                "ext": "v0",
+                "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5",
+                "key": {
+                  "ledger_key_nonce": {
+                    "nonce": 5806905060045992000
+                  }
+                },
+                "durability": "temporary",
+                "val": "void"
+              }
+            },
+            "ext": "v0"
+          },
+          6311999
+        ]
+      ],
+      [
+        {
+          "contract_data": {
             "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATYON",
             "key": {
               "vec": [
@@ -2128,10 +2196,30 @@
                 },
                 "durability": "persistent",
                 "val": {
-                  "u128": {
-                    "hi": 0,
-                    "lo": 9800000000
-                  }
+                  "map": [
+                    {
+                      "key": {
+                        "symbol": "remaining_face_value"
+                      },
+                      "val": {
+                        "u128": {
+                          "hi": 0,
+                          "lo": 9000000000
+                        }
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "remaining_funded"
+                      },
+                      "val": {
+                        "u128": {
+                          "hi": 0,
+                          "lo": 8820000000
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             },
@@ -2375,7 +2463,7 @@
                         "val": {
                           "u128": {
                             "hi": 0,
-                            "lo": 100000000000
+                            "lo": 100020000000
                           }
                         }
                       },
@@ -2390,7 +2478,7 @@
                         "val": {
                           "u128": {
                             "hi": 0,
-                            "lo": 9800000000
+                            "lo": 8820000000
                           }
                         }
                       },
@@ -2420,7 +2508,7 @@
                         "val": {
                           "u128": {
                             "hi": 0,
-                            "lo": 0
+                            "lo": 20000000
                           }
                         }
                       },
@@ -3850,121 +3938,30 @@
       "event": {
         "ext": "v0",
         "contract_id": "000000000000000000000000000000000000000000000000000000000000000a",
-        "type_": "diagnostic",
+        "type_": "contract",
         "body": {
           "v0": {
             "topics": [
               {
-                "symbol": "error"
+                "symbol": "repayment_received"
               },
               {
-                "error": {
-                  "contract": 4
-                }
+                "bytes": "55e1249079d8b7d4ed5bdaf46f740a2e626d2bea6a824d555b95ed73c34b337d"
               }
             ],
             "data": {
               "vec": [
                 {
-                  "string": "failing with contract error"
+                  "u128": {
+                    "hi": 0,
+                    "lo": 1000000000
+                  }
                 },
                 {
-                  "u32": 4
-                }
-              ]
-            }
-          }
-        }
-      },
-      "failed_call": true
-    },
-    {
-      "event": {
-        "ext": "v0",
-        "contract_id": "000000000000000000000000000000000000000000000000000000000000000a",
-        "type_": "diagnostic",
-        "body": {
-          "v0": {
-            "topics": [
-              {
-                "symbol": "error"
-              },
-              {
-                "error": {
-                  "contract": 4
-                }
-              }
-            ],
-            "data": {
-              "string": "escalating error to panic"
-            }
-          }
-        }
-      },
-      "failed_call": true
-    },
-    {
-      "event": {
-        "ext": "v0",
-        "contract_id": "000000000000000000000000000000000000000000000000000000000000000a",
-        "type_": "diagnostic",
-        "body": {
-          "v0": {
-            "topics": [
-              {
-                "symbol": "error"
-              },
-              {
-                "error": {
-                  "contract": 4
-                }
-              }
-            ],
-            "data": {
-              "string": "caught error from function"
-            }
-          }
-        }
-      },
-      "failed_call": true
-    },
-    {
-      "event": {
-        "ext": "v0",
-        "contract_id": null,
-        "type_": "diagnostic",
-        "body": {
-          "v0": {
-            "topics": [
-              {
-                "symbol": "error"
-              },
-              {
-                "error": {
-                  "contract": 4
-                }
-              }
-            ],
-            "data": {
-              "vec": [
-                {
-                  "string": "contract call failed"
-                },
-                {
-                  "symbol": "receive_repayment"
-                },
-                {
-                  "vec": [
-                    {
-                      "bytes": "55e1249079d8b7d4ed5bdaf46f740a2e626d2bea6a824d555b95ed73c34b337d"
-                    },
-                    {
-                      "u128": {
-                        "hi": 0,
-                        "lo": 1000000000
-                      }
-                    }
-                  ]
+                  "u128": {
+                    "hi": 0,
+                    "lo": 20000000
+                  }
                 }
               ]
             }
@@ -3976,22 +3973,20 @@
     {
       "event": {
         "ext": "v0",
-        "contract_id": null,
+        "contract_id": "000000000000000000000000000000000000000000000000000000000000000a",
         "type_": "diagnostic",
         "body": {
           "v0": {
             "topics": [
               {
-                "symbol": "error"
+                "symbol": "fn_return"
               },
               {
-                "error": {
-                  "contract": 4
-                }
+                "symbol": "receive_repayment"
               }
             ],
             "data": {
-              "string": "escalating error to panic"
+              "bool": true
             }
           }
         }
