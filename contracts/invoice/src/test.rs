@@ -112,6 +112,7 @@ fn setup_with_admin() -> SetupWithAdmin {
     client.initialize(&admin, &registry_id);
 
     let usdc_asset = Address::generate(&env);
+    client.add_supported_asset(&usdc_asset);
 
     (
         env,
@@ -644,6 +645,7 @@ fn test_expire_listing_stranger_no_auth_panics() {
     client.initialize(&admin, &registry_id);
 
     let usdc = Address::generate(&env);
+    client.add_supported_asset(&usdc);
     let due_date = env.ledger().timestamp() + 86400;
 
     env.mock_auths(&[soroban_sdk::testutils::MockAuth {
