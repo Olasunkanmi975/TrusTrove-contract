@@ -405,7 +405,7 @@ fn test_move_status_index_efficient_with_many_invoices() {
 
     assert_eq!(
         client.get_by_status(&InvoiceStatus::Created).len(),
-        N as usize
+        N
     );
 
     // O(1) status move: cost does not depend on bucket size
@@ -413,7 +413,7 @@ fn test_move_status_index_efficient_with_many_invoices() {
 
     assert_eq!(
         client.get_by_status(&InvoiceStatus::Created).len(),
-        (N - 1) as usize
+        N - 1
     );
     assert_eq!(client.get_by_status(&InvoiceStatus::Listed).len(), 1);
 }
