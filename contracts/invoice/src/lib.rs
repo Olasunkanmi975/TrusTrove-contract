@@ -188,6 +188,7 @@ impl InvoiceContract {
             shipped_at: None,
             issuer_confirmed: false,
             buyer_confirmed: false,
+            repaid_amount: 0,
             repaid_at: None,
             funding_asset: funding_asset.clone(),
             funding_pool: None,
@@ -541,12 +542,13 @@ impl InvoiceContract {
         true
     }
 
-    pub fn repay(env: Env, invoice_id: BytesN<32>) -> bool {
+    pub fn repay(env: Env, invoice_id: BytesN<32>, amount: u128) -> bool {
         // Repays a confirmed invoice, transferring funds to the pool.
         //
         // # Arguments
         // * `env` - The Soroban environment.
         // * `invoice_id` - The invoice being repaid.
+        // * `amount` - The amount to repay.
         //
         // # Returns
         // * `bool` - `true` when repayment is completed.
@@ -557,7 +559,7 @@ impl InvoiceContract {
         //
         // # Example
         // ```ignore
-        // client.repay(&invoice_id);
+        // client.repay(&invoice_id, 500);
         // ```
         let inv_key = DataKey::Invoice(invoice_id.clone());
         let invoice: Invoice = env
@@ -574,35 +576,45 @@ impl InvoiceContract {
             .funding_pool
             .clone()
             .unwrap_or_else(|| panic_with_error!(&env, InvoiceError::NotFound));
-        let face_value = invoice.face_value;
         let buyer = invoice.buyer.clone();
         let funding_asset = invoice.funding_asset.clone();
 
         let token = token::Client::new(&env, &funding_asset);
-        token.transfer(&buyer, &pool, &(face_value as i128));
+        token.transfer(&buyer, &pool, &(amount as i128));
 
         let mut args = Vec::new(&env);
         args.push_back(invoice_id.clone().into_val(&env));
-        args.push_back(face_value.into_val(&env));
+        args.push_back(amount.into_val(&env));
         let _: bool = env.invoke_contract(&pool, &Symbol::new(&env, "receive_repayment"), args);
 
         let mut updated = invoice;
-        updated.status = InvoiceStatus::Repaid;
-        updated.repaid_at = Some(env.ledger().timestamp());
-        env.storage().persistent().set(&inv_key, &updated);
-        env.storage()
-            .persistent()
-            .extend_ttl(&inv_key, 100, 2_000_000);
-        write_field_status(&env, &invoice_id, InvoiceStatus::Repaid);
+        updated.repaid_amount += amount;
+
+        if updated.repaid_amount >= updated.face_value {
+            updated.status = InvoiceStatus::Repaid;
+            updated.repaid_at = Some(env.ledger().timestamp());
+            env.storage().persistent().set(&inv_key, &updated);
+            env.storage()
+                .persistent()
+                .extend_ttl(&inv_key, 100, 2_000_000);
+            write_field_status(&env, &invoice_id, InvoiceStatus::Repaid);
+            
+            self::move_status_index(
+                &env,
+                &invoice_id,
+                InvoiceStatus::Confirmed,
+                InvoiceStatus::Repaid,
+            );
+        } else {
+            env.storage().persistent().set(&inv_key, &updated);
+            env.storage()
+                .persistent()
+                .extend_ttl(&inv_key, 100, 2_000_000);
+        }
+
         Self::extend_instance_ttl(&env);
 
-        self::move_status_index(
-            &env,
-            &invoice_id,
-            InvoiceStatus::Confirmed,
-            InvoiceStatus::Repaid,
-        );
-        events::invoice_repaid(&env, &invoice_id, updated.face_value);
+        events::invoice_repaid(&env, &invoice_id, amount);
         true
     }
 

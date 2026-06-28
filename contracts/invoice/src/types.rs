@@ -30,6 +30,7 @@ pub struct Invoice {
     pub shipped_at: Option<u64>,
     pub issuer_confirmed: bool,
     pub buyer_confirmed: bool,
+    pub repaid_amount: u128,
     pub repaid_at: Option<u64>,
     pub funding_asset: Address,
     pub funding_pool: Option<Address>,

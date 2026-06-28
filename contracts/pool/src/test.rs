@@ -168,7 +168,7 @@ fn fund_and_repay_invoice(te: &TestEnv) -> BytesN<32> {
     te.invoice.mark_shipped(&invoice_id);
     te.invoice.confirm_delivery(&invoice_id, &te.issuer);
     te.invoice.confirm_delivery(&invoice_id, &te.buyer);
-    te.invoice.repay(&invoice_id);
+    te.invoice.repay(&invoice_id, &10_000_000_000);
     invoice_id
 }
 
@@ -506,7 +506,7 @@ fn test_lp_position_reflects_current_share_price() {
     te.invoice.mark_shipped(&invoice_id);
     te.invoice.confirm_delivery(&invoice_id, &te.issuer);
     te.invoice.confirm_delivery(&invoice_id, &te.buyer);
-    te.invoice.repay(&invoice_id);
+    te.invoice.repay(&invoice_id, &10_000_000_000);
 
     let pos = te.pool.get_lp_position(&te.lp);
     assert_eq!(pos.usdc_value, 10_200_000_000);
@@ -563,15 +563,25 @@ fn test_receive_repayment() {
 }
 
 #[test]
-#[should_panic(expected = "Error(Contract, #4)")]
-fn test_receive_repayment_panics_when_amount_below_funded() {
+fn test_receive_repayment_partial_repayment() {
     let te = setup();
     te.pool.deposit(&te.lp, &100_000_000_000);
     let invoice_id = create_and_list(&te, &te.usdc_id);
     te.pool.fund_invoice(&invoice_id);
 
-    // funded_amount = 9_800_000_000, sending less should panic (#4 = InvalidAmount)
-    te.pool.receive_repayment(&invoice_id, &1_000_000_000);
+    // face_value=10_000_000_000, funded_amount = 9_800_000_000
+    // partial repayment = 1_000_000_000
+    // principal = 1_000_000_000 * 9_800_000_000 / 10_000_000_000 = 980_000_000
+    // yield = 1_000_000_000 - 980_000_000 = 20_000_000
+    let before = te.pool.get_stats();
+    let result = te.pool.receive_repayment(&invoice_id, &1_000_000_000);
+    assert!(result);
+
+    let after = te.pool.get_stats();
+    assert_eq!(after.total_deposits, before.total_deposits + 20_000_000);
+    assert_eq!(after.total_yield_distributed, 20_000_000);
+    assert_eq!(after.total_funded, before.total_funded - 980_000_000);
+    assert_eq!(after.active_invoice_count, 1); // still active
 }
 
 #[test]
