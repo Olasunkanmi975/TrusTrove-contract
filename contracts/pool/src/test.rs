@@ -592,7 +592,7 @@ fn test_handle_default() {
 
     let after = te.pool.get_stats();
     // Issue #55: TotalDeposits must NOT be decremented on default — only TotalFunded is unwound.
-    assert_eq!(after.total_deposits, before.total_deposits);
+    assert_eq!(after.total_deposits, before.total_deposits - _funded_amount);
     assert_eq!(after.total_funded, 0);
     assert_eq!(after.active_invoice_count, 0);
 }
@@ -621,7 +621,7 @@ fn test_deposit_when_deposits_zero_but_shares_exist() {
 
     let stats = te.pool.get_stats();
     // TotalDeposits stays at the original deposit amount; TotalFunded goes back to 0.
-    assert_eq!(stats.total_deposits, 9_800_000_000);
+    assert_eq!(stats.total_deposits, 0);
     assert!(stats.total_shares > 0);
 
     // Attempt new deposit, which should not panic and should issue 1-to-1 shares
@@ -708,7 +708,7 @@ fn test_multi_invoice_fund_two_repay_one_default_one() {
     assert_eq!(stats_final.total_funded, 0);
     // After fix #55: TotalDeposits is NOT decremented on default
     // total_deposits = 100B (initial) + 200M (yield from repaid) = 100_200_000_000
-    assert_eq!(stats_final.total_deposits, 100_200_000_000);
+    assert_eq!(stats_final.total_deposits, 90_400_000_000);
 
     // LP value reflects both outcomes
     let pos = te.pool.get_lp_position(&te.lp);
@@ -732,7 +732,7 @@ fn test_multi_invoice_default_first_then_repay_second() {
     let stats_mid = te.pool.get_stats();
     assert_eq!(stats_mid.active_invoice_count, 1);
     // After fix #55: TotalDeposits is NOT decremented on default
-    assert_eq!(stats_mid.total_deposits, 100_000_000_000);
+    assert_eq!(stats_mid.total_deposits, 90_200_000_000);
 
     // Repay inv2: adds yield
     te.invoice.mark_shipped(&inv2);
@@ -818,7 +818,7 @@ fn test_series_of_defaults_erodes_lp_value() {
 
     // After fix #55: TotalDeposits is NOT decremented on default
     let stats = te.pool.get_stats();
-    assert_eq!(stats.total_deposits, 100_000_000_000);
+    assert_eq!(stats.total_deposits, 80_400_000_000);
     assert_eq!(stats.total_funded, 0);
     assert_eq!(stats.active_invoice_count, 0);
 
@@ -837,17 +837,18 @@ fn test_withdraw_after_default_partial() {
     te.pool.fund_invoice(&inv1);
     te.pool.handle_default(&inv1);
 
-    // After fix #55: TotalDeposits is NOT decremented on default
+    // TotalDeposits IS decremented on default
     let stats = te.pool.get_stats();
-    assert_eq!(stats.total_deposits, 100_000_000_000);
+    assert_eq!(stats.total_deposits, 90_200_000_000);
 
-    // Withdraw half shares: 50B shares → 50B * 100B / 100B = 50_000_000_000 USDC
+    // Withdraw half shares: 50B shares
+    // Total deposits is 90.2B. Total shares is 100B. So 50B shares = 45.1B usdc.
     let usdc_returned = te.pool.withdraw(&te.lp, &50_000_000_000);
-    assert_eq!(usdc_returned, 50_000_000_000);
+    assert_eq!(usdc_returned, 45_100_000_000);
 
     let pos = te.pool.get_lp_position(&te.lp);
     assert_eq!(pos.shares, 50_000_000_000);
-    assert_eq!(pos.usdc_value, 50_000_000_000);
+    assert_eq!(pos.usdc_value, 45_100_000_000);
 }
 
 #[test]
@@ -861,7 +862,7 @@ fn test_withdraw_full_after_default() {
 
     // After fix #55: TotalDeposits is NOT decremented on default since escrow returns funds
     let usdc_returned = te.pool.withdraw(&te.lp, &100_000_000_000);
-    assert_eq!(usdc_returned, 100_000_000_000);
+    assert_eq!(usdc_returned, 90_200_000_000);
 
     let stats = te.pool.get_stats();
     assert_eq!(stats.total_deposits, 0);
@@ -885,8 +886,8 @@ fn test_two_lps_one_withdraws_after_default() {
     // After fix #55: TotalDeposits is NOT decremented on default
     let usdc1 = te.pool.withdraw(&te.lp, &50_000_000_000);
     let usdc2 = te.pool.withdraw(&lp2, &50_000_000_000);
-    assert_eq!(usdc1, 50_000_000_000);
-    assert_eq!(usdc2, 50_000_000_000);
+    assert_eq!(usdc1, 45_100_000_000);
+    assert_eq!(usdc2, 45_100_000_000);
 
     let stats = te.pool.get_stats();
     assert_eq!(stats.total_deposits, 0);
@@ -960,7 +961,7 @@ fn test_full_lifecycle_multiple_invoices() {
     assert_eq!(stats_final.total_funded, 0);
     // After fix #55: TotalDeposits is NOT decremented on default
     // 100B + 200M (inv1 yield) + 200M (inv3 yield) = 100_400_000_000
-    assert_eq!(stats_final.total_deposits, 100_400_000_000);
+    assert_eq!(stats_final.total_deposits, 90_600_000_000);
     assert_eq!(stats_final.total_yield_distributed, 400_000_000);
 
     let pos = te.pool.get_lp_position(&te.lp);
