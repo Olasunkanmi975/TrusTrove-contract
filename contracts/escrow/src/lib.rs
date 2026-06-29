@@ -93,7 +93,8 @@ impl EscrowContract {
             panic_with_error!(&env, EscrowError::AlreadyLocked);
         }
 
-        let usdc_id: Address = env.storage()
+        let usdc_id: Address = env
+            .storage()
             .instance()
             .get(&DataKey::UsdcAsset)
             .unwrap_or_else(|| panic_with_error!(&env, EscrowError::NotInitialized));
@@ -144,7 +145,8 @@ impl EscrowContract {
             .get(&key)
             .unwrap_or_else(|| panic_with_error!(&env, EscrowError::NotFound));
 
-        let usdc_id: Address = env.storage()
+        let usdc_id: Address = env
+            .storage()
             .instance()
             .get(&DataKey::UsdcAsset)
             .unwrap_or_else(|| panic_with_error!(&env, EscrowError::NotInitialized));
@@ -202,7 +204,8 @@ impl EscrowContract {
             panic_with_error!(&env, EscrowError::InvalidAmount);
         }
 
-        let usdc_id: Address = env.storage()
+        let usdc_id: Address = env
+            .storage()
             .instance()
             .get(&DataKey::UsdcAsset)
             .unwrap_or_else(|| panic_with_error!(&env, EscrowError::NotInitialized));
@@ -238,7 +241,8 @@ impl EscrowContract {
             return false;
         }
 
-        let admin: Address = env.storage()
+        let admin: Address = env
+            .storage()
             .instance()
             .get(&DataKey::Admin)
             .unwrap_or_else(|| panic_with_error!(&env, EscrowError::NotInitialized));
@@ -257,11 +261,13 @@ impl EscrowContract {
             panic_with_error!(&env, EscrowError::NotAuthorized);
         }
 
-        let record: EscrowRecord = env.storage()
+        let record: EscrowRecord = env
+            .storage()
             .persistent()
             .get(&key)
             .unwrap_or_else(|| panic_with_error!(&env, EscrowError::NotFound));
-        let usdc_id: Address = env.storage()
+        let usdc_id: Address = env
+            .storage()
             .instance()
             .get(&DataKey::UsdcAsset)
             .unwrap_or_else(|| panic_with_error!(&env, EscrowError::NotInitialized));

@@ -208,7 +208,8 @@ impl InvoiceContract {
             panic_with_error!(&env, InvoiceError::InvalidDueDate);
         }
 
-        let counter: u64 = env.storage()
+        let counter: u64 = env
+            .storage()
             .instance()
             .get(&DataKey::Counter)
             .unwrap_or_else(|| panic_with_error!(&env, InvoiceError::NotInitialized));
