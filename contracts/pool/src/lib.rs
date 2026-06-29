@@ -87,7 +87,9 @@ impl PoolContract {
         // ```ignore
         // let asset = client.get_usdc_asset();
         // ```
-        env.storage().instance().get(&DataKey::UsdcAsset).unwrap()
+        env.storage().instance().get(&DataKey::UsdcAsset).unwrap_or_else(|| {
+            panic_with_error!(&env, PoolError::NotInitialized)
+        })
     }
 
     pub fn deposit(env: Env, lp: Address, usdc_amount: u128) -> u128 {
@@ -113,16 +115,20 @@ impl PoolContract {
             panic_with_error!(&env, PoolError::InvalidAmount);
         }
 
-        let usdc_id: Address = env.storage().instance().get(&DataKey::UsdcAsset).unwrap();
+        let usdc_id: Address = env.storage().instance().get(&DataKey::UsdcAsset).unwrap_or_else(|| {
+            panic_with_error!(&env, PoolError::NotInitialized)
+        });
         let usdc = token::Client::new(&env, &usdc_id);
         usdc.transfer(&lp, &env.current_contract_address(), &(usdc_amount as i128));
 
-        let total_shares: u128 = env.storage().instance().get(&DataKey::TotalShares).unwrap();
+        let total_shares: u128 = env.storage().instance().get(&DataKey::TotalShares).unwrap_or_else(|| {
+            panic_with_error!(&env, PoolError::NotInitialized)
+        });
         let total_deposits: u128 = env
             .storage()
             .instance()
             .get(&DataKey::TotalDeposits)
-            .unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
 
         let shares_to_issue = if total_shares == 0 || total_deposits == 0 {
             usdc_amount
@@ -196,13 +202,17 @@ impl PoolContract {
             panic_with_error!(&env, PoolError::InsufficientShares);
         }
 
-        let total_shares: u128 = env.storage().instance().get(&DataKey::TotalShares).unwrap();
+        let total_shares: u128 = env.storage().instance().get(&DataKey::TotalShares).unwrap_or_else(|| {
+            panic_with_error!(&env, PoolError::NotInitialized)
+        });
         let total_deposits: u128 = env
             .storage()
             .instance()
             .get(&DataKey::TotalDeposits)
-            .unwrap();
-        let total_funded: u128 = env.storage().instance().get(&DataKey::TotalFunded).unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
+        let total_funded: u128 = env.storage().instance().get(&DataKey::TotalFunded).unwrap_or_else(|| {
+            panic_with_error!(&env, PoolError::NotInitialized)
+        });
         let available = total_deposits - total_funded;
 
         let usdc_to_return = shares
@@ -213,7 +223,9 @@ impl PoolContract {
             panic_with_error!(&env, PoolError::InsufficientLiquidity);
         }
 
-        let usdc_id: Address = env.storage().instance().get(&DataKey::UsdcAsset).unwrap();
+        let usdc_id: Address = env.storage().instance().get(&DataKey::UsdcAsset).unwrap_or_else(|| {
+            panic_with_error!(&env, PoolError::NotInitialized)
+        });
         let usdc = token::Client::new(&env, &usdc_id);
         usdc.transfer(
             &env.current_contract_address(),
@@ -260,7 +272,7 @@ impl PoolContract {
             .storage()
             .instance()
             .get(&DataKey::InvoiceContract)
-            .unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
 
         let mut args = Vec::new(&env);
         args.push_back(invoice_id.clone().into_val(&env));
@@ -277,7 +289,10 @@ impl PoolContract {
             &Symbol::new(&env, "get_funding_asset"),
             args,
         );
-        let usdc_id: Address = env.storage().instance().get(&DataKey::UsdcAsset).unwrap();
+        let usdc_id: Address = env.storage()
+            .instance()
+            .get(&DataKey::UsdcAsset)
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
         if invoice_asset != usdc_id {
             panic_with_error!(&env, PoolError::AssetMismatch);
         }
@@ -303,8 +318,11 @@ impl PoolContract {
             .storage()
             .instance()
             .get(&DataKey::TotalDeposits)
-            .unwrap();
-        let total_funded: u128 = env.storage().instance().get(&DataKey::TotalFunded).unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
+        let total_funded: u128 = env.storage()
+            .instance()
+            .get(&DataKey::TotalFunded)
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
         let available = total_deposits - total_funded;
         if funded_amount > available {
             panic_with_error!(&env, PoolError::InsufficientLiquidity);
@@ -314,7 +332,7 @@ impl PoolContract {
             .storage()
             .instance()
             .get(&DataKey::MaxUtilizationBps)
-            .unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
         let new_total_funded = total_funded + funded_amount;
         let utilization_after = (new_total_funded * 10000)
             .checked_div(total_deposits)
@@ -327,7 +345,7 @@ impl PoolContract {
             .storage()
             .instance()
             .get(&DataKey::EscrowContract)
-            .unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
 
         let mut args = Vec::new(&env);
         args.push_back(invoice_id.clone().into_val(&env));
@@ -350,7 +368,7 @@ impl PoolContract {
             .storage()
             .instance()
             .get(&DataKey::ActiveInvoiceCount)
-            .unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
         env.storage()
             .instance()
             .set(&DataKey::ActiveInvoiceCount, &(active_count + 1));
@@ -385,7 +403,7 @@ impl PoolContract {
             .storage()
             .instance()
             .get(&DataKey::InvoiceContract)
-            .unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
         invoice_contract.require_auth();
 
         let funded_key = DataKey::FundedInvoice(invoice_id.clone());
@@ -403,13 +421,16 @@ impl PoolContract {
             .storage()
             .instance()
             .get(&DataKey::TotalDeposits)
-            .unwrap();
-        let total_funded: u128 = env.storage().instance().get(&DataKey::TotalFunded).unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
+        let total_funded: u128 = env.storage()
+            .instance()
+            .get(&DataKey::TotalFunded)
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
         let total_yield: u128 = env
             .storage()
             .instance()
             .get(&DataKey::TotalYieldDistributed)
-            .unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
 
         env.storage()
             .instance()
@@ -426,7 +447,7 @@ impl PoolContract {
             .storage()
             .instance()
             .get(&DataKey::ActiveInvoiceCount)
-            .unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
         env.storage()
             .instance()
             .set(&DataKey::ActiveInvoiceCount, &(active_count - 1));
@@ -455,20 +476,23 @@ impl PoolContract {
             .storage()
             .instance()
             .get(&DataKey::InvoiceContract)
-            .unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
         invoice_contract.require_auth();
 
         let funded_key = DataKey::FundedInvoice(invoice_id.clone());
         if !env.storage().persistent().has(&funded_key) {
             return false;
         }
-        let funded_amount: u128 = env.storage().persistent().get(&funded_key).unwrap();
+        let funded_amount: u128 = env.storage()
+            .persistent()
+            .get(&funded_key)
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::InvoiceNotFound));
 
         let escrow_contract: Address = env
             .storage()
             .instance()
             .get(&DataKey::EscrowContract)
-            .unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
         let pool_address = env.current_contract_address();
         let mut args = Vec::new(&env);
         args.push_back(invoice_id.clone().into_val(&env));
@@ -476,12 +500,15 @@ impl PoolContract {
         let _: bool =
             env.invoke_contract(&escrow_contract, &Symbol::new(&env, "handle_default"), args);
 
-        let total_funded: u128 = env.storage().instance().get(&DataKey::TotalFunded).unwrap();
+        let total_funded: u128 = env.storage()
+            .instance()
+            .get(&DataKey::TotalFunded)
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
         let total_deposits: u128 = env
             .storage()
             .instance()
             .get(&DataKey::TotalDeposits)
-            .unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
 
         env.storage()
             .instance()
@@ -494,7 +521,7 @@ impl PoolContract {
             .storage()
             .instance()
             .get(&DataKey::ActiveInvoiceCount)
-            .unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::NotInitialized));
         env.storage()
             .instance()
             .set(&DataKey::ActiveInvoiceCount, &(active_count - 1));
