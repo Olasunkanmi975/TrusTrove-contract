@@ -4,7 +4,7 @@ use soroban_sdk::{
     contract, contractimpl, contracttype, testutils::Address as _, Address, BytesN, Env,
 };
 
-use crate::{PoolContract, PoolContractClient};
+use crate::{DataKey, PoolContract, PoolContractClient};
 
 use trusttrove_escrow::{EscrowContract as RealEscrow, EscrowContractClient as RealEscrowClient};
 use trusttrove_invoice::{
@@ -67,6 +67,7 @@ pub struct TKey(Address);
 struct TestEnv {
     env: Env,
     pool: PoolContractClient<'static>,
+    pool_id: Address,
     invoice: RealInvoiceClient<'static>,
     usdc_id: Address,
     xlm_id: Address,
@@ -139,6 +140,7 @@ fn setup() -> TestEnv {
     TestEnv {
         env,
         pool,
+        pool_id,
         invoice,
         usdc_id,
         xlm_id,
@@ -351,6 +353,25 @@ fn test_lp_position_after_deposit() {
     assert_eq!(pos.shares, 50_000_000_000);
     assert_eq!(pos.usdc_value, 50_000_000_000);
     assert_eq!(pos.deposit_count, 1);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #13)")]
+fn test_lp_position_overflow_panics() {
+    let te = setup();
+    let env = &te.env;
+    let pool_id = &te.pool_id;
+    let lp = &te.lp;
+    env.as_contract(pool_id, || {
+        env.storage().instance().set(&DataKey::TotalShares, &1u128);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalDeposits, &u128::MAX);
+        env.storage()
+            .persistent()
+            .set(&DataKey::LPShares(lp.clone()), &2u128);
+    });
+    te.pool.get_lp_position(&te.lp);
 }
 
 // ============== UTILIZATION RATE TESTS ==============
@@ -918,4 +939,55 @@ fn test_full_lifecycle_multiple_invoices() {
     assert_eq!(pos.shares, 100_000_000_000);
     assert_eq!(pos.usdc_value, 90_600_000_000);
     assert_eq!(pos.yield_earned, 0);
+}
+
+// ============== UNINITIALIZED CONTRACT TESTS ==============
+
+#[test]
+#[should_panic(expected = "Error(Contract, #14)")]
+fn test_uninitialized_pool_get_usdc_asset() {
+    let env = Env::default();
+    let pool_id = env.register_contract(None, PoolContract);
+    let pool = PoolContractClient::new(&env, &pool_id);
+    pool.get_usdc_asset();
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #14)")]
+fn test_uninitialized_pool_deposit() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let lp = Address::generate(&env);
+    let pool_id = env.register_contract(None, PoolContract);
+    let pool = PoolContractClient::new(&env, &pool_id);
+    pool.deposit(&lp, &1000);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #14)")]
+fn test_uninitialized_pool_fund_invoice() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let pool_id = env.register_contract(None, PoolContract);
+    let pool = PoolContractClient::new(&env, &pool_id);
+    let dummy_id = BytesN::from_array(&env, &[0u8; 32]);
+    pool.fund_invoice(&dummy_id);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #14)")]
+fn test_uninitialized_pool_receive_repayment() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let pool_id = env.register_contract(None, PoolContract);
+    let pool = PoolContractClient::new(&env, &pool_id);
+    let dummy_id = BytesN::from_array(&env, &[0u8; 32]);
+    pool.receive_repayment(&dummy_id, &1000);
+}
+
+#[test]
+fn test_initialized_pool_get_usdc_asset_succeeds() {
+    let te = setup();
+    let asset = te.pool.get_usdc_asset();
+    assert_eq!(asset, te.usdc_id);
 }
