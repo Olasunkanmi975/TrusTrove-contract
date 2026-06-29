@@ -83,7 +83,7 @@ impl EscrowContract {
             .storage()
             .instance()
             .get(&DataKey::PoolContract)
-            .unwrap();
+            .unwrap_or_else(|| panic_with_error!(&env, EscrowError::NotInitialized));
         pool.require_auth();
 
         if amount == 0 {
