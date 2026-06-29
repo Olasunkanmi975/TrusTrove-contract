@@ -994,3 +994,43 @@ fn test_add_then_remove_then_create_fails() {
     client.remove_supported_asset(&asset);
     assert!(!client.is_supported_asset(&asset));
 }
+
+// ============== UNINITIALIZED CONTRACT TESTS ==============
+
+#[test]
+#[should_panic(expected = "Error(Contract, #17)")]
+fn test_uninitialized_invoice_create() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let registry_id = env.register_contract(None, MockRegistry);
+    let registry_client = MockRegistryClient::new(&env, &registry_id);
+
+    let issuer = Address::generate(&env);
+    let buyer = Address::generate(&env);
+    registry_client.register(&issuer);
+    registry_client.register(&buyer);
+
+    let contract_id = env.register_contract(None, InvoiceContract);
+    let client = InvoiceContractClient::new(&env, &contract_id);
+
+    let usdc_asset = Address::generate(&env);
+    // Pre-set supported asset via storage to avoid Admin auth check
+    let asset_key = crate::DataKey::SupportedAsset(usdc_asset.clone());
+    env.as_contract(&contract_id, || {
+        env.storage().persistent().set(&asset_key, &true);
+    });
+
+    let due_date = env.ledger().timestamp() + 86400;
+    client.create(&issuer, &buyer, &1000, &due_date, &usdc_asset);
+}
+
+#[test]
+fn test_initialized_invoice_create_succeeds() {
+    let (env, client, issuer, buyer, _, usdc) = setup();
+    let due_date = env.ledger().timestamp() + 86400;
+    let invoice_id = client.create(&issuer, &buyer, &1000, &due_date, &usdc);
+    let invoice = client.get(&invoice_id);
+    assert_eq!(invoice.issuer, issuer);
+    assert_eq!(invoice.buyer, buyer);
+}
