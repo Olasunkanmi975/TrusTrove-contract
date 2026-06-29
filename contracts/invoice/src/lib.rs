@@ -357,6 +357,15 @@ impl InvoiceContract {
         // ```
         pool_address.require_auth();
 
+        let expected_pool: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::PoolContract)
+            .unwrap_or_else(|| panic_with_error!(&env, InvoiceError::NotFound));
+        if pool_address != expected_pool {
+            panic_with_error!(&env, InvoiceError::UnauthorizedPool);
+        }
+
         let inv_key = DataKey::Invoice(invoice_id.clone());
         let mut invoice: Invoice = env
             .storage()
@@ -536,7 +545,11 @@ impl InvoiceContract {
         let mut args = Vec::new(&env);
         args.push_back(invoice_id.clone().into_val(&env));
         args.push_back(face_value.into_val(&env));
-        let _: bool = env.invoke_contract(&pool, &Symbol::new(&env, "receive_repayment"), args);
+        let repayment_ok: bool =
+            env.invoke_contract(&pool, &Symbol::new(&env, "receive_repayment"), args);
+        if !repayment_ok {
+            panic_with_error!(&env, InvoiceError::RepaymentFailed);
+        }
 
         let mut updated = invoice;
         updated.status = InvoiceStatus::Repaid;
@@ -735,7 +748,7 @@ impl InvoiceContract {
             .unwrap_or_else(|| panic_with_error!(&env, InvoiceError::NotFound))
     }
 
-    pub fn get_by_status(env: Env, status: InvoiceStatus) -> Vec<Invoice> {
+    pub fn get_by_status(env: Env, status: InvoiceStatus, offset: u32, limit: u32) -> Vec<Invoice> {
         let status_u32 = status as u32;
         let count: u32 = env
             .storage()
@@ -743,7 +756,8 @@ impl InvoiceContract {
             .get(&DataKey::StatusIndexCount(status_u32))
             .unwrap_or(0);
         let mut result: Vec<Invoice> = Vec::new(&env);
-        for i in 0..count {
+        let end = core::cmp::min(offset.saturating_add(limit), count);
+        for i in offset..end {
             let id: BytesN<32> = env
                 .storage()
                 .persistent()
@@ -769,14 +783,15 @@ impl InvoiceContract {
         result
     }
 
-    pub fn get_by_issuer(env: Env, address: Address) -> Vec<Invoice> {
+    pub fn get_by_issuer(env: Env, address: Address, offset: u32, limit: u32) -> Vec<Invoice> {
         let count: u32 = env
             .storage()
             .persistent()
             .get(&DataKey::IssuerIndexCount(address.clone()))
             .unwrap_or(0);
         let mut result: Vec<Invoice> = Vec::new(&env);
-        for i in 0..count {
+        let end = core::cmp::min(offset.saturating_add(limit), count);
+        for i in offset..end {
             let id: BytesN<32> = env
                 .storage()
                 .persistent()
@@ -792,14 +807,15 @@ impl InvoiceContract {
         result
     }
 
-    pub fn get_by_buyer(env: Env, address: Address) -> Vec<Invoice> {
+    pub fn get_by_buyer(env: Env, address: Address, offset: u32, limit: u32) -> Vec<Invoice> {
         let count: u32 = env
             .storage()
             .persistent()
             .get(&DataKey::BuyerIndexCount(address.clone()))
             .unwrap_or(0);
         let mut result: Vec<Invoice> = Vec::new(&env);
-        for i in 0..count {
+        let end = core::cmp::min(offset.saturating_add(limit), count);
+        for i in offset..end {
             let id: BytesN<32> = env
                 .storage()
                 .persistent()
