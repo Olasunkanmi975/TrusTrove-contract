@@ -127,7 +127,10 @@ impl PoolContract {
         let shares_to_issue = if total_shares == 0 || total_deposits == 0 {
             usdc_amount
         } else {
-            usdc_amount * total_shares / total_deposits
+            usdc_amount
+                .checked_mul(total_shares)
+                .and_then(|v| v.checked_div(total_deposits))
+                .unwrap_or_else(|| panic_with_error!(&env, PoolError::Overflow))
         };
 
         env.storage()
@@ -202,7 +205,10 @@ impl PoolContract {
         let total_funded: u128 = env.storage().instance().get(&DataKey::TotalFunded).unwrap();
         let available = total_deposits - total_funded;
 
-        let usdc_to_return = shares * total_deposits / total_shares;
+        let usdc_to_return = shares
+            .checked_mul(total_deposits)
+            .and_then(|v| v.checked_div(total_shares))
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::Overflow));
         if usdc_to_return > available {
             panic_with_error!(&env, PoolError::InsufficientLiquidity);
         }
@@ -226,7 +232,10 @@ impl PoolContract {
 
         let init_dep_key = DataKey::LPInitialDeposit(lp.clone());
         let init_dep: u128 = env.storage().persistent().get(&init_dep_key).unwrap_or(0);
-        let principal_portion = shares * init_dep / (lp_shares);
+        let principal_portion = shares
+            .checked_mul(init_dep)
+            .and_then(|v| v.checked_div(lp_shares))
+            .unwrap_or_else(|| panic_with_error!(&env, PoolError::Overflow));
         let yield_earned = usdc_to_return.saturating_sub(principal_portion);
 
         let yield_key = DataKey::LPYieldEarned(lp.clone());
@@ -587,7 +596,10 @@ impl PoolContract {
             .unwrap_or(0);
 
         let usdc_value = if total_shares > 0 && lp_shares > 0 {
-            lp_shares * total_deposits / total_shares
+            lp_shares
+                .checked_mul(total_deposits)
+                .and_then(|v| v.checked_div(total_shares))
+                .unwrap_or(0)
         } else {
             0
         };
