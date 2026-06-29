@@ -857,11 +857,9 @@ fn assert_invariants(env: &Env, pool: &PoolContractClient, pool_id: &Address, us
         stats.available_liquidity,
     );
 
-    let expected_util = if stats.total_deposits == 0 {
-        0
-    } else {
-        (stats.total_funded * 10000 / stats.total_deposits) as u32
-    };
+    let expected_util = (stats.total_funded * 10000)
+        .checked_div(stats.total_deposits)
+        .unwrap_or(0) as u32;
     assert_eq!(
         stats.utilization_rate_bps, expected_util,
         "utilization rate mismatch",
