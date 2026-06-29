@@ -21,8 +21,10 @@ pub fn address_revoked(env: &Env, address: &Address) {
 }
 
 pub fn batch_registered(env: &Env, registered: u32, skipped: u32) {
-    env.events()
-        .publish((Symbol::new(env, "batch_registered"),), (registered, skipped));
+    env.events().publish(
+        (Symbol::new(env, "batch_registered"),),
+        (registered, skipped),
+    );
 }
 
 pub fn profile_verified(env: &Env, address: &Address, status: bool) {
