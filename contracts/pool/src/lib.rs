@@ -78,6 +78,10 @@ impl PoolContract {
             usdc_amount * total_shares / total_deposits
         };
 
+        if shares_to_issue == 0 {
+            panic_with_error!(&env, PoolError::InvalidAmount);
+        }
+
         env.storage()
             .instance()
             .set(&DataKey::TotalShares, &(total_shares + shares_to_issue));
